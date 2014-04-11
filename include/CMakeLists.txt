@@ -1,3 +1,6 @@
+# Copyright 2014 ISIR-CNRS
+# Authors: Sovannara HAK
+
 INSTALL(
         DIRECTORY ${CMAKE_SOURCE_DIR}/include/
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include

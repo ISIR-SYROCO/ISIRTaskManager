@@ -1,3 +1,6 @@
+# Copyright 2014 ISIR-CNRS
+# Authors: Sovannara HAK
+
 # Library constants
 IF(WIN32)
 	SET(LIBDIR_KW "/LIBPATH:")
