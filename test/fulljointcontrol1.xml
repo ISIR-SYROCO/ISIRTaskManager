@@ -1,0 +1,65 @@
+<tasks>
+    <task id="full" type="ACCELERATION">
+        <param w="1" kp="1" kd="1"/>
+        <fullstatefeat>
+            <type value="INTERNAL"/>
+        </fullstatefeat>
+        <objective>
+            <q_des value="0.0 0.1 0.2"/>
+            <qd_des value="0.0 0.0 0.0"/>
+            <qdd_des value="0.0 0.0 0.0"/>
+            <tau_des value="0.0 0.0 0.0"/>
+        </objective>
+    </task>
+
+    <task id="partial" type="ACCELERATION">
+        <param w="1" kp="1" kd="1"/>
+        <partialstatefeat>
+            <type value="INTERNAL"/>
+            <dofs value="2 3 4"/>
+        </partialstatefeat>
+        <objective>
+            <q_des value="0.0 0.1 0.2"/>
+            <qd_des value="0.0 0.0 0.0"/>
+            <qdd_des value="0.0 0.0 0.0"/>
+            <tau_des value="0.0 0.0 0.0"/>
+        </objective>
+    </task>
+
+    <task id="frame" type="ACCELERATION">
+        <param w="1" kp="1" kd="1"/>
+        <framefeat>
+            <dofs value="RXYZ"/>
+            <segment name="robot.07"/>
+            <local_offset xyz="0 0 0" rpy="0 0 0"/>
+        </framefeat>
+        <objective>
+            <pos_des xyz="0.0 0.1 0.2" rpy="0 0 0"/>
+            <vel_des xyz="0.0 0.1 0.2" rpy="0 0 0"/>
+            <acc_des xyz="0.0 0.1 0.2" rpy="0 0 0"/>
+            <wrench_des force="0.0 0.1 0.2" torque="0 0 0"/>
+        </objective>
+    </task>
+
+    <task id="com">
+        <param w="1" kp="1" kd="1"/>
+        <comfeat>
+            <dofs value="XYZ"/>
+        </comfeat>
+        <objective>
+            <pos_des xyz="0.0 0.1 0.2"/>
+            <vel_des xyz="0.0 0.1 0.2"/>
+            <acc_des xyz="0.0 0.1 0.2"/>
+        </objective>
+    </task>
+
+    <task id="contact">
+        <param w="1" kp="1" kd="1"/>
+        <contactfeat>
+            <segment name="hand"/>
+            <local_offset xyz="0 0 0" rpy="0 0 0"/>
+            <mu value="0.7"/>
+            <margin value="0"/>
+        </contactfeat>
+    </task>
+</tasks>
