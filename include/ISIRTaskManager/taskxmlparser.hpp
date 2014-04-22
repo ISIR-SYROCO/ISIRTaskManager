@@ -5,12 +5,15 @@
 
 #include <tinyxml.h>
 #include <string>
+#include <map>
 
 #include <orcisir/ISIRController.h>
 #include <orc/control/Feature.h>
 #include <orc/control/FullState.h>
+#include <boost/ptr_container/ptr_map.hpp>
 
 struct task_t{
+    virtual ~task_t() {}
     double w;
     double kp;
     double kd;
@@ -19,11 +22,16 @@ struct task_t{
 };
 
 struct fullstate_task_t : task_t{
+    int active;
     std::string whatPart;
     orc::FullModelState* FMS;
     orc::FullTargetState* FTS;
     orc::FullStateFeature* feat;
     orc::FullStateFeature* featdes;
+    Eigen::VectorXd q_des;
+    Eigen::VectorXd qd_des;
+    Eigen::VectorXd qdd_des;
+    Eigen::VectorXd tau_des;
 };
 
 class TaskXMLParser{
@@ -38,10 +46,13 @@ class TaskXMLParser{
     private:
         bool parse();
         bool addTask(TiXmlElement const& tasknode);
+        bool updateTask(TiXmlElement const& tasknode);
 
         bool parseTaskInfo(TiXmlElement const& task_node, task_t& taskdesc);
         bool parseFeature(TiXmlElement const& feature_node, fullstate_task_t& taskdesc);
         bool parseParam(TiXmlElement const& param_node, task_t& taskdesc);
+
+        boost::ptr_map< std::string, task_t > taskdesc_map;
 
     public:
         TiXmlDocument taskfile;

@@ -57,8 +57,15 @@ bool TaskXMLParser::parse(){
     TiXmlElement* task = docHandle.FirstChild("tasks").FirstChild("task").ToElement();
     
     for(task; task; task = task->NextSiblingElement()){
-        addTask(*task);
+        //Check if the task already exists
+        if(taskdesc_map.find(task->Attribute("id")) == boost::end(taskdesc_map)){
+            addTask(*task);
+        }
+        else{
+            updateTask(*task);
+        }
     }
+
     return true;
 }
 
@@ -96,10 +103,12 @@ bool TaskXMLParser::parseParam(TiXmlElement const& param_node, task_t& taskdesc)
         kd_ss >> taskdesc.kd;
     }
 
+    /*
     std::cout << taskdesc.id << ":" << taskdesc.type << "\n\t" 
                          << " w = " << taskdesc.w << "\n\t"
                          << " kp = " << taskdesc.kp << "\n\t"
                          << " kd = " << taskdesc.kd << "\n";
+    */
     return true;
 }
 
@@ -129,14 +138,14 @@ bool TaskXMLParser::parseFeature(TiXmlElement const& feature_node, fullstate_tas
     taskdesc.FTS = new orc::FullTargetState (taskdesc.id+".FTargetState", ctrl->getModel(), part);
 
     TiXmlElement const* qdes_node = feature_node.FirstChildElement("objective")->FirstChildElement("q_des");
-    Eigen::VectorXd q_des(ctrl->getModel().nbInternalDofs());
+    taskdesc.q_des.resize(ctrl->getModel().nbInternalDofs());
     if (qdes_node->Attribute("value") != NULL){
         std::istringstream q_des_ss(qdes_node->Attribute("value"));
-        for (unsigned int i=0; i<q_des.size(); i++){
-            q_des_ss >> q_des[i];
+        for (unsigned int i=0; i<taskdesc.q_des.size(); i++){
+            q_des_ss >> taskdesc.q_des[i];
         }
     }
-    taskdesc.FTS->set_q(q_des);
+    taskdesc.FTS->set_q(taskdesc.q_des);
 
     taskdesc.feat = new orc::FullStateFeature (taskdesc.id+".feat", *(taskdesc.FMS));
     taskdesc.featdes = new orc::FullStateFeature (taskdesc.id+"featdes", *(taskdesc.FTS));
@@ -154,28 +163,41 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
 
     std::string featType(feature_node->Attribute("type"));
     if ( featType == "fullstate" ){
-        fullstate_task_t taskdesc;
-        parseTaskInfo(task_node, taskdesc);
-        parseParam(*param_node, taskdesc);
-        parseFeature(*feature_node, taskdesc);
-        orcisir::ISIRTask& task = ctrl->createISIRTask(taskdesc.id, *taskdesc.feat, *taskdesc.featdes);
+        fullstate_task_t* taskdesc = new fullstate_task_t;
+        parseTaskInfo(task_node, *taskdesc);
+        parseParam(*param_node, *taskdesc);
+        parseFeature(*feature_node, *taskdesc);
 
-        if (taskdesc.type == "ACCELERATION"){
-            task.initAsAccelerationTask();
-            ctrl->addTask(task);
-            task.activateAsObjective();
-            task.setStiffness(taskdesc.kp);
-            task.setDamping(taskdesc.kd);
-            task.setWeight(taskdesc.w);
+        std::cout << taskdesc->id << std::endl;
+        taskdesc_map.insert(taskdesc->id, taskdesc);
+
+        orcisir::ISIRTask* task;
+        //task = dynamic_cast<orcisir::ISIRTask*>(&(ctrl->getTask(taskdesc.id)));
+        task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
+
+        if (taskdesc->type == "ACCELERATION"){
+            task->initAsAccelerationTask();
+            ctrl->addTask(*task);
+            task->activateAsObjective();
+            task->setStiffness(taskdesc->kp);
+            task->setDamping(taskdesc->kd);
+            task->setWeight(taskdesc->w);
         }
         else{
-            std::cout << taskdesc.id << " : Unsupported " << taskdesc.type << std::endl;
+            std::cout << taskdesc->id << " : Unsupported " << taskdesc->type << std::endl;
             return false;
         }
     }
     else{
         std::cout << "Unsupported " << featType << std::endl;
     }
+
+    return true;
+}
+
+bool TaskXMLParser::updateTask(TiXmlElement const& task_node){
+    //fullstate_task_t* t = dynamic_cast<fullstate_task_t*>(&taskdesc_map["full"]);
+    //std::cout << "task id " << t->q_des[1] << std::endl;
 
     return true;
 }
