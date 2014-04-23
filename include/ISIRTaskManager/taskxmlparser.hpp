@@ -18,6 +18,7 @@ struct task_t{
     double kp;
     double kd;
     std::string type;
+    std::string feature_type;
     std::string id;
 };
 
@@ -49,7 +50,7 @@ class TaskXMLParser{
         bool updateTask(TiXmlElement const& tasknode);
 
         bool parseTaskInfo(TiXmlElement const& task_node, task_t& taskdesc);
-        bool parseFeature(TiXmlElement const& feature_node, fullstate_task_t& taskdesc);
+        bool parseFeatureFullState(TiXmlElement const& feature_node, fullstate_task_t& taskdesc);
         bool parseParam(TiXmlElement const& param_node, task_t& taskdesc);
 
         boost::ptr_map< std::string, task_t > taskdesc_map;

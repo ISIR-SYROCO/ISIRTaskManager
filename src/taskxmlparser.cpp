@@ -112,7 +112,7 @@ bool TaskXMLParser::parseParam(TiXmlElement const& param_node, task_t& taskdesc)
     return true;
 }
 
-bool TaskXMLParser::parseFeature(TiXmlElement const& feature_node, fullstate_task_t& taskdesc){
+bool TaskXMLParser::parseFeatureFullState(TiXmlElement const& feature_node, fullstate_task_t& taskdesc){
     int part;
     TiXmlElement const* part_node = feature_node.FirstChildElement("part");
     if (part_node == NULL){
@@ -139,17 +139,61 @@ bool TaskXMLParser::parseFeature(TiXmlElement const& feature_node, fullstate_tas
 
     TiXmlElement const* qdes_node = feature_node.FirstChildElement("objective")->FirstChildElement("q_des");
     taskdesc.q_des.resize(ctrl->getModel().nbInternalDofs());
-    if (qdes_node->Attribute("value") != NULL){
-        std::istringstream q_des_ss(qdes_node->Attribute("value"));
-        for (unsigned int i=0; i<taskdesc.q_des.size(); i++){
-            q_des_ss >> taskdesc.q_des[i];
+    if (qdes_node != NULL){
+        if (qdes_node->Attribute("value") != NULL){
+            std::istringstream q_des_ss(qdes_node->Attribute("value"));
+            for (unsigned int i=0; i<taskdesc.q_des.size(); i++){
+                q_des_ss >> taskdesc.q_des[i];
+            }
+        }
+        taskdesc.FTS->set_q(taskdesc.q_des);
+    }
+
+    //qd_des
+    TiXmlElement const* qddes_node = feature_node.FirstChildElement("objective")->FirstChildElement("qd_des");
+    taskdesc.qd_des.resize(ctrl->getModel().nbInternalDofs());
+    if (qddes_node != NULL){
+        if (qddes_node->Attribute("value") != NULL){
+            std::istringstream qd_des_ss(qddes_node->Attribute("value"));
+            for (unsigned int i=0; i<taskdesc.qd_des.size(); i++){
+                qd_des_ss >> taskdesc.qd_des[i];
+            }
+            taskdesc.FTS->set_qdot(taskdesc.qd_des);
         }
     }
-    taskdesc.FTS->set_q(taskdesc.q_des);
+
+
+    //qdd_des
+    TiXmlElement const* qdddes_node = feature_node.FirstChildElement("objective")->FirstChildElement("qdd_des");
+    taskdesc.qdd_des.resize(ctrl->getModel().nbInternalDofs());
+    if (qdddes_node != NULL){
+        if (qdddes_node->Attribute("value") != NULL){
+            std::istringstream qdd_des_ss(qdddes_node->Attribute("value"));
+            for (unsigned int i=0; i<taskdesc.qdd_des.size(); i++){
+                qdd_des_ss >> taskdesc.qdd_des[i];
+            }
+            taskdesc.FTS->set_qddot(taskdesc.qdd_des);
+        }
+    }
 
     taskdesc.feat = new orc::FullStateFeature (taskdesc.id+".feat", *(taskdesc.FMS));
     taskdesc.featdes = new orc::FullStateFeature (taskdesc.id+"featdes", *(taskdesc.FTS));
 
+    //tau_des
+    TiXmlElement const* taudes_node = feature_node.FirstChildElement("objective")->FirstChildElement("tau_des");
+    taskdesc.tau_des.resize(ctrl->getModel().nbInternalDofs());
+    if (taudes_node != NULL){
+        if (taudes_node->Attribute("value") != NULL){
+            std::istringstream tau_des_ss(taudes_node->Attribute("value"));
+            for (unsigned int i=0; i<taskdesc.tau_des.size(); i++){
+                tau_des_ss >> taskdesc.tau_des[i];
+            }
+            taskdesc.FTS->set_tau(taskdesc.tau_des);
+        }
+    }
+
+    taskdesc.feat = new orc::FullStateFeature (taskdesc.id+".feat", *(taskdesc.FMS));
+    taskdesc.featdes = new orc::FullStateFeature (taskdesc.id+"featdes", *(taskdesc.FTS));
     return true;
 }
 
@@ -164,15 +208,15 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
     std::string featType(feature_node->Attribute("type"));
     if ( featType == "fullstate" ){
         fullstate_task_t* taskdesc = new fullstate_task_t;
+        taskdesc->feature_type = "fullstate";
         parseTaskInfo(task_node, *taskdesc);
         parseParam(*param_node, *taskdesc);
-        parseFeature(*feature_node, *taskdesc);
+        parseFeatureFullState(*feature_node, *taskdesc);
 
         std::cout << taskdesc->id << std::endl;
         taskdesc_map.insert(taskdesc->id, taskdesc);
 
         orcisir::ISIRTask* task;
-        //task = dynamic_cast<orcisir::ISIRTask*>(&(ctrl->getTask(taskdesc.id)));
         task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
 
         if (taskdesc->type == "ACCELERATION"){
@@ -182,6 +226,12 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
             task->setStiffness(taskdesc->kp);
             task->setDamping(taskdesc->kd);
             task->setWeight(taskdesc->w);
+        }
+        else if (taskdesc->type == "TORQUE"){
+            std::cout << taskdesc->id << " : TODO" << taskdesc->type << std::endl;
+        }
+        else if (taskdesc->type == "FORCE"){
+            std::cout << taskdesc->id << " : TODO" << taskdesc->type << std::endl;
         }
         else{
             std::cout << taskdesc->id << " : Unsupported " << taskdesc->type << std::endl;
@@ -198,6 +248,19 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
 bool TaskXMLParser::updateTask(TiXmlElement const& task_node){
     //fullstate_task_t* t = dynamic_cast<fullstate_task_t*>(&taskdesc_map["full"]);
     //std::cout << "task id " << t->q_des[1] << std::endl;
+
+    //task = dynamic_cast<orcisir::ISIRTask*>(&(ctrl->getTask(taskdesc.id)));
+    TiXmlElement const* param_node = task_node.FirstChildElement("param");
+    TiXmlElement const* feature_node = task_node.FirstChildElement("feature");
+    if (feature_node == NULL){
+        std::cout << "No feature!" << std::endl;
+        return false;
+    }
+
+    std::string featType(feature_node->Attribute("type"));
+    if ( featType == "fullstate" ){
+        std::cout << "update" << std::endl;
+    }
 
     return true;
 }
