@@ -281,6 +281,9 @@ void TaskXMLParser::printFullstateDesc(fullstate_task_t &task){
     std::cout << "---------\n"
         << task.id << "\n"
         << task.feature_type << "\n"
+        << "w = : " << task.w << "\n"
+        << "kp = : " << task.kp << "\n"
+        << "kd = : " << task.kd << "\n"
         << "q_des: " ;
     
     for(unsigned int i=0; i<task.q_des.size(); ++i){
