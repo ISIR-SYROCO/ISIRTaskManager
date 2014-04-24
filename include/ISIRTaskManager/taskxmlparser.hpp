@@ -47,13 +47,17 @@ class TaskXMLParser{
     private:
         bool parse();
         bool addTask(TiXmlElement const& tasknode);
-        bool updateTask(TiXmlElement const& tasknode);
+        bool updateTask(TiXmlElement const& tasknode, task_t& taskdesc);
 
         bool parseTaskInfo(TiXmlElement const& task_node, task_t& taskdesc);
         bool parseFeatureFullState(TiXmlElement const& feature_node, fullstate_task_t& taskdesc);
+        bool parseObjectiveFullState(TiXmlElement const& feature_node, fullstate_task_t& taskdesc);
+
         bool parseParam(TiXmlElement const& param_node, task_t& taskdesc);
 
         boost::ptr_map< std::string, task_t > taskdesc_map;
+
+        void printFullstateDesc(fullstate_task_t &task);
 
     public:
         TiXmlDocument taskfile;
