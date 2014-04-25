@@ -152,7 +152,12 @@ bool TaskXMLParser::parseObjectiveFullState(TiXmlElement const& feature_node, fu
         if (qdes_node->Attribute("value") != NULL){
             std::istringstream q_des_ss(qdes_node->Attribute("value"));
             for (unsigned int i=0; i<taskdesc.q_des.size(); i++){
-                q_des_ss >> taskdesc.q_des[i];
+                if(!q_des_ss.eof()){
+                    q_des_ss >> taskdesc.q_des[i];
+                }
+                else{
+                    return false;
+                }
             }
         }
         taskdesc.FTS->set_q(taskdesc.q_des);
@@ -165,7 +170,11 @@ bool TaskXMLParser::parseObjectiveFullState(TiXmlElement const& feature_node, fu
         if (qddes_node->Attribute("value") != NULL){
             std::istringstream qd_des_ss(qddes_node->Attribute("value"));
             for (unsigned int i=0; i<taskdesc.qd_des.size(); i++){
-                qd_des_ss >> taskdesc.qd_des[i];
+                if(!qd_des_ss.eof()){
+                    qd_des_ss >> taskdesc.qd_des[i];
+                }
+                else
+                    return false;
             }
             taskdesc.FTS->set_qdot(taskdesc.qd_des);
         }
@@ -179,7 +188,11 @@ bool TaskXMLParser::parseObjectiveFullState(TiXmlElement const& feature_node, fu
         if (qdddes_node->Attribute("value") != NULL){
             std::istringstream qdd_des_ss(qdddes_node->Attribute("value"));
             for (unsigned int i=0; i<taskdesc.qdd_des.size(); i++){
-                qdd_des_ss >> taskdesc.qdd_des[i];
+                if(!qdd_des_ss.eof()){
+                    qdd_des_ss >> taskdesc.qdd_des[i];
+                }
+                else
+                    return false;
             }
             taskdesc.FTS->set_qddot(taskdesc.qdd_des);
         }
@@ -192,7 +205,11 @@ bool TaskXMLParser::parseObjectiveFullState(TiXmlElement const& feature_node, fu
         if (taudes_node->Attribute("value") != NULL){
             std::istringstream tau_des_ss(taudes_node->Attribute("value"));
             for (unsigned int i=0; i<taskdesc.tau_des.size(); i++){
-                tau_des_ss >> taskdesc.tau_des[i];
+                if(!tau_des_ss.eof()){
+                    tau_des_ss >> taskdesc.tau_des[i];
+                }
+                else
+                    return false;
             }
             taskdesc.FTS->set_tau(taskdesc.tau_des);
         }
