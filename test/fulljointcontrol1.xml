@@ -1,6 +1,6 @@
 <tasks>
-    <task id="full" type="ACCELERATION">
-        <param w="1" kp="4" kd="4"/>
+    <task id="full" type="ACCELERATION" active="1">
+        <param w="0.001" kp="4" kd="4"/>
         <feature type="fullstate">
             <part value="INTERNAL"/>
             <objective>
@@ -9,21 +9,39 @@
         </feature>
     </task>
 
-    <task id="partial" type="ACCELERATION">
-        <param w="1" kp="1" kd="1"/>
-        <feature type="partialstate">
+    <task id="full" type="ACCELERATION" active="1">
+        <param w="0.001" kp="4" kd="5"/>
+        <feature type="fullstate">
             <part value="INTERNAL"/>
-            <dofs value="2 3 4"/>
             <objective>
-                <q_des value="0.0 0.1 0.2"/>
-                <qd_des value="0.0 0.0 0.0"/>
-                <qdd_des value="0.0 0.0 0.0"/>
-                <tau_des value="0.0 0.0 0.0"/>
+                <q_des value="0.4 0.4 0. -2 0.3 0.4 0.5"/>
             </objective>
         </feature>
     </task>
 
-    <task id="frame" type="ACCELERATION">
+    <task id="partial" type="ACCELERATION" active="1">
+        <param w="0.999" kp="3" kd="3"/>
+        <feature type="partialstate">
+            <part value="INTERNAL"/>
+            <dofs value="2 3 4"/>
+            <objective>
+                <q_des value="1.6 1.4 1.666"/>
+            </objective>
+        </feature>
+    </task>
+
+    <task id="partial" type="ACCELERATION" active="1">
+        <param w="0.999" kp="3" kd="3"/>
+        <feature type="partialstate">
+            <part value="INTERNAL"/>
+            <dofs value="2 3 4"/>
+            <objective>
+                <q_des value="1.2 1.4 1.666"/>
+            </objective>
+        </feature>
+    </task>
+
+    <task id="frame" type="ACCELERATION" active="1">
         <param w="1" kp="1" kd="1"/>
         <feature type="frame">
             <dofs value="RXYZ"/>
@@ -38,7 +56,7 @@
         </feature>
     </task>
 
-    <task id="com">
+    <task id="com" active="1">
         <param w="1" kp="1" kd="1"/>
         <feature type="com">
             <dofs value="XYZ"/>
@@ -50,7 +68,7 @@
         </feature>
     </task>
 
-    <task id="contact">
+    <task id="contact" active="1">
         <param w="1" kp="1" kd="1"/>
         <feature type="contact">
             <segment name="hand"/>

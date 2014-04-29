@@ -8,6 +8,7 @@
 #include <map>
 
 #include <orcisir/ISIRController.h>
+#include <orcisir/Features/ISIRFeature.h>
 #include <orc/control/Feature.h>
 #include <orc/control/FullState.h>
 #include <boost/ptr_container/ptr_map.hpp>
@@ -17,18 +18,31 @@ struct task_t{
     double w;
     double kp;
     double kd;
+    int active;
     std::string type;
     std::string feature_type;
     std::string id;
 };
 
 struct fullstate_task_t : task_t{
-    int active;
     std::string whatPart;
     orc::FullModelState* FMS;
     orc::FullTargetState* FTS;
     orc::FullStateFeature* feat;
     orc::FullStateFeature* featdes;
+    Eigen::VectorXd q_des;
+    Eigen::VectorXd qd_des;
+    Eigen::VectorXd qdd_des;
+    Eigen::VectorXd tau_des;
+};
+
+struct partialstate_task_t : task_t{
+    std::string whatPart;
+    orcisir::PartialModelState* PMS;
+    orcisir::PartialTargetState* PTS;
+    orcisir::PartialStateFeature* feat;
+    orcisir::PartialStateFeature* featdes;
+    Eigen::VectorXi sdofs;
     Eigen::VectorXd q_des;
     Eigen::VectorXd qd_des;
     Eigen::VectorXd qdd_des;
@@ -50,14 +64,21 @@ class TaskXMLParser{
         bool updateTask(TiXmlElement const& tasknode, task_t& taskdesc);
 
         bool parseTaskInfo(TiXmlElement const& task_node, task_t& taskdesc);
+
+        bool fillVector(TiXmlElement const* node, unsigned int vector_size, Eigen::VectorXd& vector_result);
+
         bool parseFeatureFullState(TiXmlElement const& feature_node, fullstate_task_t& taskdesc);
         bool parseObjectiveFullState(TiXmlElement const& feature_node, fullstate_task_t& taskdesc);
+
+        bool parseFeaturePartialState(TiXmlElement const& feature_node, partialstate_task_t& taskdesc);
+        bool parseObjectivePartialState(TiXmlElement const& feature_node, partialstate_task_t& taskdesc);
 
         bool parseParam(TiXmlElement const& param_node, task_t& taskdesc);
 
         boost::ptr_map< std::string, task_t > taskdesc_map;
 
         void printFullstateDesc(fullstate_task_t &task);
+        void printPartialstateDesc(partialstate_task_t &task);
 
     public:
         TiXmlDocument taskfile;
