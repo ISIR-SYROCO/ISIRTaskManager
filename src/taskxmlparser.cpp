@@ -148,72 +148,26 @@ bool TaskXMLParser::parseFeatureFullState(TiXmlElement const& feature_node, full
 
 bool TaskXMLParser::parseObjectiveFullState(TiXmlElement const& feature_node, fullstate_task_t& taskdesc){
     TiXmlElement const* qdes_node = feature_node.FirstChildElement("objective")->FirstChildElement("q_des");
-    taskdesc.q_des.resize(ctrl->getModel().nbInternalDofs());
-    if (qdes_node != NULL){
-        if (qdes_node->Attribute("value") != NULL){
-            std::istringstream q_des_ss(qdes_node->Attribute("value"));
-            for (unsigned int i=0; i<taskdesc.q_des.size(); i++){
-                if(!q_des_ss.eof()){
-                    q_des_ss >> taskdesc.q_des[i];
-                }
-                else{
-                    return false;
-                }
-            }
-        }
+    if (fillVector(qdes_node, ctrl->getModel().nbInternalDofs(), taskdesc.q_des)){
         taskdesc.FTS->set_q(taskdesc.q_des);
     }
 
     //qd_des
     TiXmlElement const* qddes_node = feature_node.FirstChildElement("objective")->FirstChildElement("qd_des");
-    taskdesc.qd_des.resize(ctrl->getModel().nbInternalDofs());
-    if (qddes_node != NULL){
-        if (qddes_node->Attribute("value") != NULL){
-            std::istringstream qd_des_ss(qddes_node->Attribute("value"));
-            for (unsigned int i=0; i<taskdesc.qd_des.size(); i++){
-                if(!qd_des_ss.eof()){
-                    qd_des_ss >> taskdesc.qd_des[i];
-                }
-                else
-                    return false;
-            }
-            taskdesc.FTS->set_qdot(taskdesc.qd_des);
-        }
+    if (fillVector(qddes_node, ctrl->getModel().nbInternalDofs(), taskdesc.qd_des)){
+        taskdesc.FTS->set_qdot(taskdesc.qd_des);
     }
-
 
     //qdd_des
     TiXmlElement const* qdddes_node = feature_node.FirstChildElement("objective")->FirstChildElement("qdd_des");
-    taskdesc.qdd_des.resize(ctrl->getModel().nbInternalDofs());
-    if (qdddes_node != NULL){
-        if (qdddes_node->Attribute("value") != NULL){
-            std::istringstream qdd_des_ss(qdddes_node->Attribute("value"));
-            for (unsigned int i=0; i<taskdesc.qdd_des.size(); i++){
-                if(!qdd_des_ss.eof()){
-                    qdd_des_ss >> taskdesc.qdd_des[i];
-                }
-                else
-                    return false;
-            }
-            taskdesc.FTS->set_qddot(taskdesc.qdd_des);
-        }
+    if (fillVector(qdddes_node, ctrl->getModel().nbInternalDofs(), taskdesc.qdd_des)){
+        taskdesc.FTS->set_qddot(taskdesc.qdd_des);
     }
 
     //tau_des
     TiXmlElement const* taudes_node = feature_node.FirstChildElement("objective")->FirstChildElement("tau_des");
-    taskdesc.tau_des.resize(ctrl->getModel().nbInternalDofs());
-    if (taudes_node != NULL){
-        if (taudes_node->Attribute("value") != NULL){
-            std::istringstream tau_des_ss(taudes_node->Attribute("value"));
-            for (unsigned int i=0; i<taskdesc.tau_des.size(); i++){
-                if(!tau_des_ss.eof()){
-                    tau_des_ss >> taskdesc.tau_des[i];
-                }
-                else
-                    return false;
-            }
-            taskdesc.FTS->set_tau(taskdesc.tau_des);
-        }
+    if (fillVector(taudes_node, ctrl->getModel().nbInternalDofs(), taskdesc.tau_des)){
+        taskdesc.FTS->set_tau(taskdesc.tau_des);
     }
 
     return true;
