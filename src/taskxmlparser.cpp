@@ -310,7 +310,12 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
             task->setWeight(taskdesc->w);
         }
         else if (taskdesc->type == "TORQUE"){
-            std::cout << taskdesc->id << " : TODO" << taskdesc->type << std::endl;
+            task->initAsTorqueTask();
+            ctrl->addTask(*task);
+            task->activateAsObjective();
+            task->setStiffness(taskdesc->kp);
+            task->setDamping(taskdesc->kd);
+            task->setWeight(taskdesc->w);
         }
         else if (taskdesc->type == "FORCE"){
             std::cout << taskdesc->id << " : TODO" << taskdesc->type << std::endl;
@@ -341,7 +346,12 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
             task->setWeight(taskdesc->w);
         }
         else if (taskdesc->type == "TORQUE"){
-            std::cout << taskdesc->id << " : TODO" << taskdesc->type << std::endl;
+            task->initAsTorqueTask();
+            ctrl->addTask(*task);
+            task->activateAsObjective();
+            task->setStiffness(taskdesc->kp);
+            task->setDamping(taskdesc->kd);
+            task->setWeight(taskdesc->w);
         }
         else if (taskdesc->type == "FORCE"){
             std::cout << taskdesc->id << " : TODO" << taskdesc->type << std::endl;
