@@ -15,16 +15,16 @@ XML Specifications:
 
 tasks:
 ------
-1. <tasks> :
+1. `<tasks>` :
      Lists of tasks.
 2. Attributes
  * None
 3. Elements
- * <task>
+ * `<task>`
 
 task:
 -----
-1. <task> :
+1. `<task>` :
      Task description.
 2. Attributes
  * id (required) :
@@ -34,14 +34,14 @@ task:
  * active (required) :
      1 if the task is active, else 0
 3. Elements
- * <param> (required) :
+ * `<param>` (required) :
      Parameters of the task
- * <feature> (required) :
+ * `<feature>` (required) :
      The feature of the task
 
 param:
 ------
-1. <param> :
+1. `<param>` :
     Task parameters
 2. Attributes
  * w (required) :
@@ -55,30 +55,30 @@ param:
 
 feature:
 --------
-1. <feature> :
+1. `<feature>` :
     The feature of the task.
 2. Attributes 
  * type (required) :
      The type of the feature, can be fullstate, partialstate, frame, com, contact
 3. Elements
- * <part> (required for fullstate, partialstate, frame):
+ * `<part>` (required for fullstate, partialstate, frame):
      This elements specifies if the free flyer is considered.
- * <dofs> (required for partialstate, frame, com) :
+ * `<dofs>` (required for partialstate, frame, com) :
      The selected degrees of freedom.
- * <objective> (required for fullstate, partialstate, frame, com) :
+ * `<objective>` (required for fullstate, partialstate, frame, com) :
      The desired state of the task
- * <segment> (required for contact) :
+ * `<segment>` (required for contact) :
      The name of the segment which is in contact.
- * <local_offset> (required for contact) :
+ * `<local_offset>` (required for contact) :
      The offset of the contact point relative to the frame of the segment.
- * <mu> (required for contact) :
+ * `<mu>` (required for contact) :
      Friction cone coefficient
- * <margin> (required for contact) :
+ * `<margin>` (required for contact) :
      Margin
 
 part:
 -----
-1. <part> :
+1. `<part>` :
     This elements specifies if the free flyer is considered.
 2. Attributes
  * value (required) :
@@ -88,7 +88,7 @@ part:
 
 dofs:
 -----
-1. <dofs> : 
+1. `<dofs>` : 
     The selected degrees of freedom.
 2. Attributes
  * value (required) :
@@ -99,29 +99,29 @@ dofs:
 
 objective:
 ----------
-1. <objective> :
+1. `<objective>` :
     The desired state of the task 
 2. Attributes
  * None
 3. Elements
- * <q_des> (for fullstate, partialstate) :
+ * `<q_des>` (for fullstate, partialstate) :
      Desired joint angles ex : value="0.1 0.2 0.3"
- * <qd_des> (for fullstate, partialstate) :
+ * `<qd_des>` (for fullstate, partialstate) :
      Desired joint angles velocity
- * <qdd_des> (for fullstate, partialstate) :
+ * `<qdd_des>` (for fullstate, partialstate) :
      Desired joint angles acceleration
- * <tau_des> (for fullstate, partialstate) :
+ * `<tau_des>` (for fullstate, partialstate) :
      Desired joint torques
- * <pos_des> (for frame) :
+ * `<pos_des>` (for frame) :
      Desired position
- * <vel_des> (for frame) :
+ * `<vel_des>` (for frame) :
      Desired velocity
- * <acc_des> (for frame) :
+ * `<acc_des>` (for frame) :
      Desired acceleration
 
 q_des, qd_des, qdd_des, tau_des, mu, margin:
 --------------------------------------------
-1. <q_des> :
+1. `<q_des>` :
     Desired joint angles
 2. Attribute
  * value (required) : 
@@ -131,7 +131,7 @@ q_des, qd_des, qdd_des, tau_des, mu, margin:
 
 pos_des, vel_des, acc_des:
 --------------------------
-1. <pos_des> :
+1. `<pos_des>` :
     Desired position
 2. Attributes
  * xyz : 
@@ -143,7 +143,7 @@ pos_des, vel_des, acc_des:
 
 segment:
 --------
-1. <segment>
+1. `<segment>`
      The segment involved in the contact
 2. Attributes
  * name (required) :
