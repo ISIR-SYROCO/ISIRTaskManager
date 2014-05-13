@@ -5,6 +5,7 @@ ADD_LIBRARY(
     ${PROJECT_NAME}
     ${LIB_TYPE}
     taskxmlparser.cpp
+    mathutils.cpp
 )
 
 TARGET_LINK_LIBRARIES(

@@ -4,7 +4,10 @@
 // Description:
 
 #include "ISIRTaskManager/taskxmlparser.hpp"
+#include "ISIRTaskManager/mathutils.hpp"
 #include <boost/filesystem.hpp>
+#include <boost/assign/list_of.hpp>
+using namespace boost::assign;
 using namespace boost::filesystem;
 #include <iostream>
 #include <orc/control/Feature.h>
@@ -25,6 +28,15 @@ TaskXMLParser::~TaskXMLParser(){
 
 TaskXMLParser::TaskXMLParser(std::string filepath, orcisir::ISIRController &controller)
     : ctrl(&controller){
+    str_frame_dof_map = map_list_of
+    ("X", orc::X)
+    ("Y", orc::Y)
+    ("XY", orc::XY)
+    ("Z", orc::Z)
+    ("XZ", orc::XZ)
+    ("YZ", orc::YZ)
+    ("XYZ", orc::XYZ);
+
     loadFile(filepath);
     std::cout << ctrl->getName() << std::endl;
 }
@@ -197,6 +209,55 @@ bool TaskXMLParser::fillVector(TiXmlElement const* node, unsigned int vector_siz
     }
 }
 
+bool TaskXMLParser::fillVector3(TiXmlElement const* node, const char * attribute, Eigen::Vector3d& vector_result){
+    if (node != NULL){
+        if (node->Attribute(attribute) != NULL){
+            std::istringstream ss(node->Attribute(attribute));
+            for (unsigned int i=0; i<3; i++){
+                if(!ss.eof()){
+                    ss >> vector_result[i];
+                }
+                else{
+                    return false;
+                }
+            }
+        }
+        else{
+            return false;
+        }
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
+void TaskXMLParser::initTask(orcisir::ISIRTask& task, task_t& taskdesc){
+    if (taskdesc.type == "ACCELERATION"){
+        task.initAsAccelerationTask();
+        ctrl->addTask(task);
+        task.activateAsObjective();
+        task.setStiffness(taskdesc.kp);
+        task.setDamping(taskdesc.kd);
+        task.setWeight(taskdesc.w);
+    }
+    else if (taskdesc.type == "TORQUE"){
+        task.initAsTorqueTask();
+        ctrl->addTask(task);
+        task.activateAsObjective();
+        task.setStiffness(taskdesc.kp);
+        task.setDamping(taskdesc.kd);
+        task.setWeight(taskdesc.w);
+    }
+    else if (taskdesc.type == "FORCE"){
+        std::cout << taskdesc.id << " : TODO" << taskdesc.type << std::endl;
+    }
+    else{
+        std::cout << taskdesc.id << " : Unsupported " << taskdesc.type << std::endl;
+    }
+
+}
+
 bool TaskXMLParser::parseFeaturePartialState(TiXmlElement const& feature_node, partialstate_task_t& taskdesc){
     int part;
     TiXmlElement const* part_node = feature_node.FirstChildElement("part");
@@ -275,6 +336,169 @@ bool TaskXMLParser::parseObjectivePartialState(TiXmlElement const& feature_node,
     if (fillVector(taudes_node, taskdesc.sdofs.size(), taskdesc.tau_des)){
         taskdesc.PTS->set_tau(taskdesc.tau_des);
     }
+
+    return true;
+}
+
+void TaskXMLParser::parseFrameTaskDofs(TiXmlElement const& dof_node, bool& rotation, orc::ECartesianDof& cartesian_dofs){
+    std::string dofs(dof_node.Attribute("value"));
+    if (dofs.at(0) == 'R'){
+        rotation = true;
+        dofs.erase(dofs.begin());
+        if (!dofs.empty()){
+            std::map<std::string, orc::ECartesianDof>::iterator it;
+            it = str_frame_dof_map.find(dofs);
+            if ( it != str_frame_dof_map.end() ){
+                //Displacement feature
+                cartesian_dofs = it->second;
+            }
+            else{
+                //Invalid cartesian dofs
+                cartesian_dofs = orc::NONE;
+            }
+        }
+        else{
+            //Orientation feature
+            cartesian_dofs = orc::NONE;
+        }
+    }
+    else{
+        rotation = false;
+        if (!dofs.empty()){
+            std::map<std::string, orc::ECartesianDof>::iterator it;
+            it = str_frame_dof_map.find(dofs);
+            if ( it != str_frame_dof_map.end() ){
+                //Position feature
+                cartesian_dofs = it->second;
+            }
+            else{
+                //Invalid cartesian dofs
+                cartesian_dofs = orc::NONE;
+            }
+        }
+        else{
+            //Invalid cartesian
+            cartesian_dofs = orc::NONE;
+        }
+    }
+    return;
+}
+
+bool TaskXMLParser::parseObjectiveDisplacementFrame(TiXmlElement const& feature_node, frame_task_t& taskdesc){
+    TiXmlElement const* objective_node = feature_node.FirstChildElement("objective");
+    if (objective_node != NULL){
+        TiXmlElement const* pos_des_node = objective_node->FirstChildElement("pos_des");
+        if (pos_des_node != NULL){
+            Eigen::Vector3d xyz, rpy;
+            fillVector3(pos_des_node, "xyz", xyz);
+            fillVector3(pos_des_node, "rpy", rpy);
+            Eigen::Rotation3d rot = RollPitchYaw2Quaternion(rpy[0], rpy[1], rpy[2]);
+
+            Eigen::Displacementd pos_des_displ(xyz, rot);
+            taskdesc.position_des = pos_des_displ;
+            taskdesc.TF->setPosition(taskdesc.position_des);
+        }
+
+        TiXmlElement const* vel_des_node = objective_node->FirstChildElement("vel_des");
+        if (vel_des_node != NULL){
+            Eigen::Vector3d xyz, rxyz;
+            fillVector3(vel_des_node, "xyz", xyz);
+            fillVector3(vel_des_node, "rxyz", rxyz);
+            Eigen::AngularVelocityd avel(rxyz);
+
+            Eigen::Twistd vel_des_twist(avel, xyz);
+            taskdesc.velocity_des = vel_des_twist;
+            taskdesc.TF->setVelocity(taskdesc.velocity_des);
+        }
+
+        TiXmlElement const* acc_des_node = objective_node->FirstChildElement("acc_des");
+        if (acc_des_node != NULL){
+            Eigen::Vector3d xyz, rxyz;
+            fillVector3(acc_des_node, "xyz", xyz);
+            fillVector3(acc_des_node, "rxyz", rxyz);
+            Eigen::AngularVelocityd avel(rxyz);
+
+            Eigen::Twistd acc_des_twist(avel, xyz);
+            taskdesc.acceleration_des = acc_des_twist;
+            taskdesc.TF->setAcceleration(taskdesc.acceleration_des);
+        }
+
+        TiXmlElement const* wrench_des_node = objective_node->FirstChildElement("wrench_des");
+        if (wrench_des_node != NULL){
+            Eigen::Vector3d force, torque;
+            fillVector3(wrench_des_node, "force", force);
+            fillVector3(wrench_des_node, "torque", torque);
+
+            Eigen::Wrenchd wrench_des(torque, force);
+            taskdesc.wrench_des = wrench_des;
+            taskdesc.TF->setWrench(taskdesc.wrench_des);
+        }
+
+    }
+    else{
+        std::cout << taskdesc.id << " : No objective in feature node" << std::endl;
+        return false;
+    }
+
+
+    return true;
+}
+
+bool TaskXMLParser::parseFeatureDisplacement(TiXmlElement const& feature_node, displacement_task_t& taskdesc){
+    TiXmlElement const* segment_node = feature_node.FirstChildElement("segment");
+    if(segment_node == NULL){
+        std::cout << taskdesc.id << " : No segment node in feature node" << std::endl;
+        return false;
+    }
+    if (segment_node->Attribute("name") != NULL){
+        taskdesc.segment_name = segment_node->Attribute("name"); 
+    }
+    else{
+        std::cout << taskdesc.id << " : No segment name" << std::endl;
+        return false;
+    }
+    //Parse local offset
+    TiXmlElement const* local_offset_node = feature_node.FirstChildElement("local_offset");
+    if( local_offset_node == NULL ){
+        taskdesc.offset.x() = 0;
+        taskdesc.offset.y() = 0;
+        taskdesc.offset.z() = 0;
+        taskdesc.offset.qx() = 0;
+        taskdesc.offset.qy() = 0;
+        taskdesc.offset.qz() = 0;
+        taskdesc.offset.qw() = 1;
+    }
+    else{
+        Eigen::Vector3d xyz;
+        fillVector3(local_offset_node, "xyz", xyz);
+
+        Eigen::Vector3d rpy;
+        fillVector3(local_offset_node, "rpy", rpy);
+
+        Eigen::Rotation3d rot = RollPitchYaw2Quaternion(rpy[0], rpy[1], rpy[2]);
+
+        Eigen::Displacementd displ(xyz, rot);
+        taskdesc.offset = displ;
+    }
+    //Creation of features
+    taskdesc.SF = new orc::SegmentFrame(taskdesc.id+".SFrame", ctrl->getModel(), taskdesc.segment_name, taskdesc.offset);
+    taskdesc.TF = new orc::TargetFrame(taskdesc.id+".TFrame", ctrl->getModel());
+
+    //Parse objectives
+    parseObjectiveDisplacementFrame(feature_node, taskdesc);
+
+    taskdesc.feat = new orc::DisplacementFeature(taskdesc.id+".DisplacementFeature", *(taskdesc.SF),  taskdesc.dofs);
+    taskdesc.featdes = new orc::DisplacementFeature(taskdesc.id+".DisplacementFeature", *(taskdesc.TF),  taskdesc.dofs);
+
+    return true;
+}
+
+bool TaskXMLParser::parseFeatureOrientation(TiXmlElement const& feature_node, orientation_task_t& taskdesc){
+
+    return true;
+}
+
+bool TaskXMLParser::parseFeaturePosition(TiXmlElement const& feature_node, position_task_t& taskdesc){
 
     return true;
 }
@@ -360,6 +584,86 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
             std::cout << taskdesc->id << " : Unsupported " << taskdesc->type << std::endl;
         }
     }
+    else if( featType == "displacement"){
+        //Check which type of feature to create
+        TiXmlElement const* dofs_node = feature_node->FirstChildElement("dofs");
+        bool rotation_enabled;
+        orc::ECartesianDof cartesian_dofs;
+        parseFrameTaskDofs(*dofs_node, rotation_enabled, cartesian_dofs);
+        displacement_task_t* taskdesc = new displacement_task_t;
+        taskdesc->feature_type = "displacement";
+        taskdesc->dofs = cartesian_dofs;
+        parseTaskInfo(task_node, *taskdesc);
+        parseParam(*param_node, *taskdesc);
+        orcisir::ISIRTask* task;
+        if (rotation_enabled == true){
+            if (cartesian_dofs != orc::NONE){
+                //Displacement feature
+                parseFeatureDisplacement(*feature_node, *taskdesc);
+
+                taskdesc_map.insert(taskdesc->id, taskdesc);
+                task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
+                initTask(*task, *taskdesc);
+                ////
+            }
+            else{
+                std::cout << taskdesc->id << " : incorrect dof, displacement must have translation component" << std::endl;
+            }
+        }
+        else{
+            std::cout << taskdesc->id << " : incorrect dof, displacement must have rotation component" << std::endl;
+        }
+    }
+    else if( featType == "orientation" ){
+        //Check which type of feature to create
+        TiXmlElement const* dofs_node = feature_node->FirstChildElement("dofs");
+        bool rotation_enabled;
+        orc::ECartesianDof cartesian_dofs;
+        parseFrameTaskDofs(*dofs_node, rotation_enabled, cartesian_dofs);
+        orientation_task_t* taskdesc = new orientation_task_t;
+        taskdesc->feature_type = "orientation";
+        parseTaskInfo(task_node, *taskdesc);
+        parseParam(*param_node, *taskdesc);
+        orcisir::ISIRTask* task;
+        
+        if (rotation_enabled == true && cartesian_dofs == orc::NONE){
+                //Orientation feature
+                parseFeatureOrientation(*feature_node, *taskdesc);
+
+                taskdesc_map.insert(taskdesc->id, taskdesc);
+                task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
+                initTask(*task, *taskdesc);
+                ////
+        }
+        else{
+            std::cout << taskdesc->id << " : Invalid dof" << std::endl;
+        }
+    }
+    else if( featType == "position" ){
+        //Check which type of feature to create
+        TiXmlElement const* dofs_node = feature_node->FirstChildElement("dofs");
+        bool rotation_enabled;
+        orc::ECartesianDof cartesian_dofs;
+        parseFrameTaskDofs(*dofs_node, rotation_enabled, cartesian_dofs);
+        position_task_t* taskdesc = new position_task_t;
+        taskdesc->feature_type = "position";
+        taskdesc->dofs = cartesian_dofs;
+        parseTaskInfo(task_node, *taskdesc);
+        parseParam(*param_node, *taskdesc);
+        orcisir::ISIRTask* task;
+        
+        if (rotation_enabled == false && cartesian_dofs != orc::NONE){
+            //PositionFeature
+            parseFeaturePosition(*feature_node, *taskdesc);
+
+            taskdesc_map.insert(taskdesc->id, taskdesc);
+            task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
+            initTask(*task, *taskdesc);
+        }
+        else{
+            std::cout << taskdesc->id << " : Invalid dof" << std::endl;
+        }
+    }
     else{
         std::cout << "Unsupported " << featType << std::endl;
     }
@@ -395,6 +699,18 @@ bool TaskXMLParser::updateTask(TiXmlElement const& task_node, task_t& taskdesc){
         partialstate_task_t* partialstate_task_desc = dynamic_cast<partialstate_task_t*>(&taskdesc);
         parseParam(*param_node, *partialstate_task_desc);
         parseObjectivePartialState(*feature_node, *partialstate_task_desc);
+    }
+    else if( featType == "displacement" ){
+        displacement_task_t* displacement_task_desc = dynamic_cast<displacement_task_t*>(&taskdesc);
+        parseParam(*param_node, *displacement_task_desc);
+        parseObjectiveDisplacementFrame(*feature_node, *displacement_task_desc);
+        
+    }
+    else if( featType == "orientation"){
+
+    }
+    else if( featType == "position"){
+
     }
 
     return true;
@@ -436,4 +752,15 @@ void TaskXMLParser::printPartialstateDesc(partialstate_task_t &task){
     }
 
     std::cout << "\n---------\n";
+}
+
+void TaskXMLParser::printDisplacementDesc(displacement_task_t &task){
+    std::cout << "---------\n"
+        << task.id << "\n"
+        << task.feature_type << "\n"
+        << "w = : " << task.w << "\n"
+        << "kp = : " << task.kp << "\n"
+        << "kd = : " << task.kd << "\n";
+
+
 }

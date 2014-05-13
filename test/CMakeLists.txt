@@ -16,3 +16,12 @@ TARGET_LINK_LIBRARIES(
     ModelKukaFixed
     ${PROJECT_NAME}
 )
+
+ADD_EXECUTABLE(testquaternion
+    testquaternion.cpp
+)
+
+TARGET_LINK_LIBRARIES(
+    testquaternion
+    ${PROJECT_NAME}
+)
