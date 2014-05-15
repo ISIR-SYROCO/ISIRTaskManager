@@ -24,3 +24,8 @@ Eigen::Rotation3d RollPitchYaw2Quaternion(double r, double p, double y){
     return q;
 }
 
+Eigen::Rotation3d RollPitchYaw2Quaternion(Eigen::Vector3d rpy){
+    return RollPitchYaw2Quaternion(rpy[0], rpy[1], rpy[2]);
+}
+
+

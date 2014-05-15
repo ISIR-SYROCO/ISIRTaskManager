@@ -503,6 +503,65 @@ bool TaskXMLParser::parseObjectiveOrientationFrame(TiXmlElement const& feature_n
     return true;
 }
 
+bool TaskXMLParser::parseObjectivePositionFrame(TiXmlElement const& feature_node, frame_task_t& taskdesc){
+    TiXmlElement const* objective_node = feature_node.FirstChildElement("objective");
+    if (objective_node != NULL){
+        TiXmlElement const* pos_des_node = objective_node->FirstChildElement("pos_des");
+        if (pos_des_node != NULL){
+            Eigen::Vector3d xyz;
+            fillVector3(pos_des_node, "xyz", xyz);
+
+            Eigen::Rotation3d rot(1, 0, 0, 0);
+
+            Eigen::Displacementd pos_des_displ(xyz, rot);
+            taskdesc.position_des = pos_des_displ;
+            taskdesc.TF->setPosition(taskdesc.position_des);
+        }
+
+        TiXmlElement const* vel_des_node = objective_node->FirstChildElement("vel_des");
+        if (vel_des_node != NULL){
+            Eigen::Vector3d xyz, rxyz;
+            fillVector3(vel_des_node, "xyz", xyz);
+            rxyz << 0, 0, 0;
+            Eigen::AngularVelocityd avel(rxyz);
+
+            Eigen::Twistd vel_des_twist(avel, xyz);
+            taskdesc.velocity_des = vel_des_twist;
+            taskdesc.TF->setVelocity(taskdesc.velocity_des);
+        }
+
+        TiXmlElement const* acc_des_node = objective_node->FirstChildElement("acc_des");
+        if (acc_des_node != NULL){
+            Eigen::Vector3d xyz, rxyz;
+            xyz << 0, 0, 0;
+            fillVector3(acc_des_node, "rxyz", rxyz);
+            Eigen::AngularVelocityd avel(rxyz);
+
+            Eigen::Twistd acc_des_twist(avel, xyz);
+            taskdesc.acceleration_des = acc_des_twist;
+            taskdesc.TF->setAcceleration(taskdesc.acceleration_des);
+        }
+
+        TiXmlElement const* wrench_des_node = objective_node->FirstChildElement("wrench_des");
+        if (wrench_des_node != NULL){
+            Eigen::Vector3d force, torque;
+            fillVector3(wrench_des_node, "force", force);
+            fillVector3(wrench_des_node, "torque", torque);
+
+            Eigen::Wrenchd wrench_des(torque, force);
+            taskdesc.wrench_des = wrench_des;
+            taskdesc.TF->setWrench(taskdesc.wrench_des);
+        }
+
+    }
+    else{
+        std::cout << taskdesc.id << " : No objective in feature node" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 bool TaskXMLParser::parseFeatureDisplacement(TiXmlElement const& feature_node, displacement_task_t& taskdesc){
     TiXmlElement const* segment_node = feature_node.FirstChildElement("segment");
     if(segment_node == NULL){
@@ -578,7 +637,7 @@ bool TaskXMLParser::parseFeatureOrientation(TiXmlElement const& feature_node, or
     }
     else{
         Eigen::Vector3d xyz;
-        xyz << 0, 0, 0;
+        fillVector3(local_offset_node, "xyz", xyz);
 
         Eigen::Vector3d rpy;
         fillVector3(local_offset_node, "rpy", rpy);
@@ -595,13 +654,56 @@ bool TaskXMLParser::parseFeatureOrientation(TiXmlElement const& feature_node, or
     //Parse objectives
     parseObjectiveOrientationFrame(feature_node, taskdesc);
 
-    taskdesc.feat = new orc::OrientationFeature(taskdesc.id+".DisplacementFeature", *(taskdesc.SF));
-    taskdesc.featdes = new orc::OrientationFeature(taskdesc.id+".DisplacementFeature", *(taskdesc.TF));
+    taskdesc.feat = new orc::OrientationFeature(taskdesc.id+".OrientationFeature", *(taskdesc.SF));
+    taskdesc.featdes = new orc::OrientationFeature(taskdesc.id+".OrientationFeature", *(taskdesc.TF));
 
     return true;
 }
 
 bool TaskXMLParser::parseFeaturePosition(TiXmlElement const& feature_node, position_task_t& taskdesc){
+    TiXmlElement const* segment_node = feature_node.FirstChildElement("segment");
+    if(segment_node == NULL){
+        std::cout << taskdesc.id << " : No segment node in feature node" << std::endl;
+        return false;
+    }
+    if (segment_node->Attribute("name") != NULL){
+        taskdesc.segment_name = segment_node->Attribute("name"); 
+    }
+    else{
+        std::cout << taskdesc.id << " : No segment name" << std::endl;
+        return false;
+    }
+    //Parse local offset
+    TiXmlElement const* local_offset_node = feature_node.FirstChildElement("local_offset");
+    if( local_offset_node == NULL ){
+        taskdesc.offset.x() = 0;
+        taskdesc.offset.y() = 0;
+        taskdesc.offset.z() = 0;
+        taskdesc.offset.qx() = 0;
+        taskdesc.offset.qy() = 0;
+        taskdesc.offset.qz() = 0;
+        taskdesc.offset.qw() = 1;
+    }
+    else{
+        Eigen::Vector3d xyz;
+        fillVector3(local_offset_node, "xyz", xyz);
+
+        Eigen::Vector3d rpy;
+        fillVector3(local_offset_node, "rpy", rpy);
+        Eigen::Rotation3d rot = RollPitchYaw2Quaternion(rpy);
+
+        Eigen::Displacementd displ(xyz, rot);
+        taskdesc.offset = displ;
+    }
+    //Creation of features
+    taskdesc.SF = new orc::SegmentFrame(taskdesc.id+".SFrame", ctrl->getModel(), taskdesc.segment_name, taskdesc.offset);
+    taskdesc.TF = new orc::TargetFrame(taskdesc.id+".TFrame", ctrl->getModel());
+
+    //Parse objectives
+    parseObjectivePositionFrame(feature_node, taskdesc);
+
+    taskdesc.feat = new orc::PositionFeature(taskdesc.id+".PositionFeature", *(taskdesc.SF),  taskdesc.dofs);
+    taskdesc.featdes = new orc::PositionFeature(taskdesc.id+".PositionFeature", *(taskdesc.TF),  taskdesc.dofs);
 
     return true;
 }
@@ -816,6 +918,9 @@ bool TaskXMLParser::updateTask(TiXmlElement const& task_node, task_t& taskdesc){
 
     }
     else if( featType == "position"){
+        position_task_t* position_task_desc = dynamic_cast<position_task_t*>(&taskdesc);
+        parseParam(*param_node, *position_task_desc);
+        parseObjectivePositionFrame(*feature_node, *position_task_desc);
 
     }
 
