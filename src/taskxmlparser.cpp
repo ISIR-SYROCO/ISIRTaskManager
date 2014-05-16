@@ -759,30 +759,8 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
 
         orcisir::ISIRTask* task;
         task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
+        initTask(*task, *taskdesc);
 
-        if (taskdesc->type == "ACCELERATION"){
-            task->initAsAccelerationTask();
-            ctrl->addTask(*task);
-            task->activateAsObjective();
-            task->setStiffness(taskdesc->kp);
-            task->setDamping(taskdesc->kd);
-            task->setWeight(taskdesc->w);
-        }
-        else if (taskdesc->type == "TORQUE"){
-            task->initAsTorqueTask();
-            ctrl->addTask(*task);
-            task->activateAsObjective();
-            task->setStiffness(taskdesc->kp);
-            task->setDamping(taskdesc->kd);
-            task->setWeight(taskdesc->w);
-        }
-        else if (taskdesc->type == "FORCE"){
-            std::cout << taskdesc->id << " : TODO" << taskdesc->type << std::endl;
-        }
-        else{
-            std::cout << taskdesc->id << " : Unsupported " << taskdesc->type << std::endl;
-            return false;
-        }
     }
     else if( featType == "partialstate" ){
         partialstate_task_t* taskdesc = new partialstate_task_t;
@@ -795,29 +773,8 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
 
         orcisir::ISIRTask* task;
         task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
+        initTask(*task, *taskdesc);
 
-        if (taskdesc->type == "ACCELERATION"){
-            task->initAsAccelerationTask();
-            ctrl->addTask(*task);
-            task->activateAsObjective();
-            task->setStiffness(taskdesc->kp);
-            task->setDamping(taskdesc->kd);
-            task->setWeight(taskdesc->w);
-        }
-        else if (taskdesc->type == "TORQUE"){
-            task->initAsTorqueTask();
-            ctrl->addTask(*task);
-            task->activateAsObjective();
-            task->setStiffness(taskdesc->kp);
-            task->setDamping(taskdesc->kd);
-            task->setWeight(taskdesc->w);
-        }
-        else if (taskdesc->type == "FORCE"){
-            std::cout << taskdesc->id << " : TODO" << taskdesc->type << std::endl;
-        }
-        else{
-            std::cout << taskdesc->id << " : Unsupported " << taskdesc->type << std::endl;
-        }
     }
     else if( featType == "displacement"){
         //Check which type of feature to create
