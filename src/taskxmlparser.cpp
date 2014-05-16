@@ -587,6 +587,54 @@ bool TaskXMLParser::parseObjectivePositionFrame(TiXmlElement const& feature_node
     return true;
 }
 
+bool TaskXMLParser::parseObjectiveCoM(TiXmlElement const& feature_node, com_task_t& taskdesc){
+    TiXmlElement const* objective_node = feature_node.FirstChildElement("objective");
+    if (objective_node != NULL){
+        TiXmlElement const* pos_des_node = objective_node->FirstChildElement("pos_des");
+        if (pos_des_node != NULL){
+            Eigen::Vector3d xyz;
+            fillVector3(pos_des_node, "xyz", xyz);
+
+            Eigen::Rotation3d rot(1, 0, 0, 0);
+
+            Eigen::Displacementd pos_des_displ(xyz, rot);
+            taskdesc.position_des = pos_des_displ;
+            taskdesc.TF->setPosition(taskdesc.position_des);
+        }
+
+        TiXmlElement const* vel_des_node = objective_node->FirstChildElement("vel_des");
+        if (vel_des_node != NULL){
+            Eigen::Vector3d xyz, rxyz;
+            fillVector3(vel_des_node, "xyz", xyz);
+            rxyz << 0, 0, 0;
+            Eigen::AngularVelocityd avel(rxyz);
+
+            Eigen::Twistd vel_des_twist(avel, xyz);
+            taskdesc.velocity_des = vel_des_twist;
+            taskdesc.TF->setVelocity(taskdesc.velocity_des);
+        }
+
+        TiXmlElement const* acc_des_node = objective_node->FirstChildElement("acc_des");
+        if (acc_des_node != NULL){
+            Eigen::Vector3d xyz, rxyz;
+            xyz << 0, 0, 0;
+            fillVector3(acc_des_node, "rxyz", rxyz);
+            Eigen::AngularVelocityd avel(rxyz);
+
+            Eigen::Twistd acc_des_twist(avel, xyz);
+            taskdesc.acceleration_des = acc_des_twist;
+            taskdesc.TF->setAcceleration(taskdesc.acceleration_des);
+        }
+
+    }
+    else{
+        std::cout << taskdesc.id << " : No objective in feature node" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 bool TaskXMLParser::parseFeatureDisplacement(TiXmlElement const& feature_node, displacement_task_t& taskdesc){
     TiXmlElement const* segment_node = feature_node.FirstChildElement("segment");
     if(segment_node == NULL){
@@ -674,6 +722,19 @@ bool TaskXMLParser::parseFeaturePosition(TiXmlElement const& feature_node, posit
     taskdesc.feat = new orc::PositionFeature(taskdesc.id+".PositionFeature", *(taskdesc.SF),  taskdesc.dofs);
     taskdesc.featdes = new orc::PositionFeature(taskdesc.id+".PositionFeature", *(taskdesc.TF),  taskdesc.dofs);
 
+    return true;
+}
+
+bool TaskXMLParser::parseFeatureCom(TiXmlElement const& feature_node, com_task_t& taskdesc){
+    //Creation of CoM feature
+    taskdesc.CoMF = new orc::CoMFrame(taskdesc.id+"CoMFrame", ctrl->getModel());
+    taskdesc.TF = new orc::TargetFrame(taskdesc.id+".TFrame", ctrl->getModel());
+
+    //Parse objectives
+    parseObjectiveCoM(feature_node, taskdesc);
+
+    taskdesc.feat = new orc::PositionFeature(taskdesc.id+".PositionFeature", *(taskdesc.CoMF),  taskdesc.dofs);
+    taskdesc.featdes = new orc::PositionFeature(taskdesc.id+".PositionFeature", *(taskdesc.TF),  taskdesc.dofs);
     return true;
 }
 
@@ -838,6 +899,32 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
             std::cout << taskdesc->id << " : Invalid dof" << std::endl;
         }
     }
+    else if( featType == "com" ){
+        TiXmlElement const* dofs_node = feature_node->FirstChildElement("dofs");
+        bool rotation_enabled;
+        orc::ECartesianDof cartesian_dofs;
+        parseFrameTaskDofs(*dofs_node, rotation_enabled, cartesian_dofs);
+        com_task_t* taskdesc = new com_task_t;
+//
+        taskdesc->feature_type = "com";
+        taskdesc->dofs = cartesian_dofs;
+        parseTaskInfo(task_node, *taskdesc);
+        parseParam(*param_node, *taskdesc);
+        orcisir::ISIRTask* task;
+        
+        if (rotation_enabled == false && cartesian_dofs != orc::NONE){
+            //com
+            parseFeatureCom(*feature_node, *taskdesc);
+
+            taskdesc_map.insert(taskdesc->id, taskdesc);
+            task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
+            initTask(*task, *taskdesc);
+        }
+        else{
+            std::cout << taskdesc->id << " : Invalid dof" << std::endl;
+        }
+
+    }
     else{
         std::cout << "Unsupported " << featType << std::endl;
     }
@@ -890,6 +977,11 @@ bool TaskXMLParser::updateTask(TiXmlElement const& task_node, task_t& taskdesc){
         position_task_t* position_task_desc = dynamic_cast<position_task_t*>(&taskdesc);
         parseParam(*param_node, *position_task_desc);
         parseObjectivePositionFrame(*feature_node, *position_task_desc);
+    }
+    else if( featType == "com"){
+        com_task_t* com_task_desc = dynamic_cast<com_task_t*>(&taskdesc);
+        parseParam(*param_node, *com_task_desc);
+        parseObjectiveCoM(*feature_node, *com_task_desc);
 
     }
 

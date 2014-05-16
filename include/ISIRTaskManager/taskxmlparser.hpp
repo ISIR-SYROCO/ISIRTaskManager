@@ -116,12 +116,14 @@ class TaskXMLParser{
         bool parseObjectiveDisplacementFrame(TiXmlElement const& feature_node, frame_task_t& taskdesc);
         bool parseObjectiveOrientationFrame(TiXmlElement const& feature_node, frame_task_t& taskdesc);
         bool parseObjectivePositionFrame(TiXmlElement const& feature_node, frame_task_t& taskdesc);
+        bool parseObjectiveCoM(TiXmlElement const& feature_node, com_task_t& taskdesc);
 
         bool parseFeatureDisplacement(TiXmlElement const& feature_node, displacement_task_t& taskdesc);
         
         bool parseFeatureOrientation(TiXmlElement const& feature_node, orientation_task_t& taskdesc);
 
         bool parseFeaturePosition(TiXmlElement const& feature_node, position_task_t& taskdesc);
+        bool parseFeatureCom(TiXmlElement const& feature_node, com_task_t& taskdesc);
 
         bool parseParam(TiXmlElement const& param_node, task_t& taskdesc);
 
