@@ -77,6 +77,17 @@ struct orientation_task_t : frame_task_t{
     orc::OrientationFeature* featdes;
 };
 
+struct com_task_t : task_t{
+    orc::CoMFrame* CoMF;
+    orc::TargetFrame* TF;
+    orc::ECartesianDof dofs;
+    Eigen::Displacementd position_des;
+    Eigen::Twistd velocity_des;
+    Eigen::Twistd acceleration_des;
+    orc::PositionFeature* feat;
+    orc::PositionFeature* featdes;
+};
+
 class TaskXMLParser{
     public:
         TaskXMLParser();
@@ -115,6 +126,8 @@ class TaskXMLParser{
         bool parseParam(TiXmlElement const& param_node, task_t& taskdesc);
 
         void parseFrameTaskDofs(TiXmlElement const& dof_node, bool& rotation, orc::ECartesianDof& cartesian_dof);
+
+        void parseLocalOffset(TiXmlElement const& local_offset_node, frame_task_t& taskdesc);
 
         void initTask(orcisir::ISIRTask& task, task_t& taskdesc);
 

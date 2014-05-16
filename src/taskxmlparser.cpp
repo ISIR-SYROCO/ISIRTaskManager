@@ -126,6 +126,31 @@ bool TaskXMLParser::parseParam(TiXmlElement const& param_node, task_t& taskdesc)
     return true;
 }
 
+void TaskXMLParser::parseLocalOffset(TiXmlElement const& local_offset_node, frame_task_t& taskdesc){
+    if( &local_offset_node == NULL ){
+        taskdesc.offset.x() = 0;
+        taskdesc.offset.y() = 0;
+        taskdesc.offset.z() = 0;
+        taskdesc.offset.qx() = 0;
+        taskdesc.offset.qy() = 0;
+        taskdesc.offset.qz() = 0;
+        taskdesc.offset.qw() = 1;
+    }
+    else{
+        Eigen::Vector3d xyz;
+        fillVector3(&local_offset_node, "xyz", xyz);
+
+        Eigen::Vector3d rpy;
+        fillVector3(&local_offset_node, "rpy", rpy);
+
+        Eigen::Rotation3d rot = RollPitchYaw2Quaternion(rpy[0], rpy[1], rpy[2]);
+
+        Eigen::Displacementd displ(xyz, rot);
+        taskdesc.offset = displ;
+    }
+    return;
+}
+
 bool TaskXMLParser::parseFeatureFullState(TiXmlElement const& feature_node, fullstate_task_t& taskdesc){
     int part;
     TiXmlElement const* part_node = feature_node.FirstChildElement("part");
@@ -577,27 +602,8 @@ bool TaskXMLParser::parseFeatureDisplacement(TiXmlElement const& feature_node, d
     }
     //Parse local offset
     TiXmlElement const* local_offset_node = feature_node.FirstChildElement("local_offset");
-    if( local_offset_node == NULL ){
-        taskdesc.offset.x() = 0;
-        taskdesc.offset.y() = 0;
-        taskdesc.offset.z() = 0;
-        taskdesc.offset.qx() = 0;
-        taskdesc.offset.qy() = 0;
-        taskdesc.offset.qz() = 0;
-        taskdesc.offset.qw() = 1;
-    }
-    else{
-        Eigen::Vector3d xyz;
-        fillVector3(local_offset_node, "xyz", xyz);
+    parseLocalOffset(*local_offset_node, taskdesc);
 
-        Eigen::Vector3d rpy;
-        fillVector3(local_offset_node, "rpy", rpy);
-
-        Eigen::Rotation3d rot = RollPitchYaw2Quaternion(rpy[0], rpy[1], rpy[2]);
-
-        Eigen::Displacementd displ(xyz, rot);
-        taskdesc.offset = displ;
-    }
     //Creation of features
     taskdesc.SF = new orc::SegmentFrame(taskdesc.id+".SFrame", ctrl->getModel(), taskdesc.segment_name, taskdesc.offset);
     taskdesc.TF = new orc::TargetFrame(taskdesc.id+".TFrame", ctrl->getModel());
@@ -626,27 +632,8 @@ bool TaskXMLParser::parseFeatureOrientation(TiXmlElement const& feature_node, or
     }
     //Parse local offset
     TiXmlElement const* local_offset_node = feature_node.FirstChildElement("local_offset");
-    if( local_offset_node == NULL ){
-        taskdesc.offset.x() = 0;
-        taskdesc.offset.y() = 0;
-        taskdesc.offset.z() = 0;
-        taskdesc.offset.qx() = 0;
-        taskdesc.offset.qy() = 0;
-        taskdesc.offset.qz() = 0;
-        taskdesc.offset.qw() = 1;
-    }
-    else{
-        Eigen::Vector3d xyz;
-        fillVector3(local_offset_node, "xyz", xyz);
+    parseLocalOffset(*local_offset_node, taskdesc);
 
-        Eigen::Vector3d rpy;
-        fillVector3(local_offset_node, "rpy", rpy);
-
-        Eigen::Rotation3d rot = RollPitchYaw2Quaternion(rpy[0], rpy[1], rpy[2]);
-
-        Eigen::Displacementd displ(xyz, rot);
-        taskdesc.offset = displ;
-    }
     //Creation of features
     taskdesc.SF = new orc::SegmentFrame(taskdesc.id+".SFrame", ctrl->getModel(), taskdesc.segment_name, taskdesc.offset);
     taskdesc.TF = new orc::TargetFrame(taskdesc.id+".TFrame", ctrl->getModel());
@@ -675,26 +662,8 @@ bool TaskXMLParser::parseFeaturePosition(TiXmlElement const& feature_node, posit
     }
     //Parse local offset
     TiXmlElement const* local_offset_node = feature_node.FirstChildElement("local_offset");
-    if( local_offset_node == NULL ){
-        taskdesc.offset.x() = 0;
-        taskdesc.offset.y() = 0;
-        taskdesc.offset.z() = 0;
-        taskdesc.offset.qx() = 0;
-        taskdesc.offset.qy() = 0;
-        taskdesc.offset.qz() = 0;
-        taskdesc.offset.qw() = 1;
-    }
-    else{
-        Eigen::Vector3d xyz;
-        fillVector3(local_offset_node, "xyz", xyz);
+    parseLocalOffset(*local_offset_node, taskdesc);
 
-        Eigen::Vector3d rpy;
-        fillVector3(local_offset_node, "rpy", rpy);
-        Eigen::Rotation3d rot = RollPitchYaw2Quaternion(rpy);
-
-        Eigen::Displacementd displ(xyz, rot);
-        taskdesc.offset = displ;
-    }
     //Creation of features
     taskdesc.SF = new orc::SegmentFrame(taskdesc.id+".SFrame", ctrl->getModel(), taskdesc.segment_name, taskdesc.offset);
     taskdesc.TF = new orc::TargetFrame(taskdesc.id+".TFrame", ctrl->getModel());
