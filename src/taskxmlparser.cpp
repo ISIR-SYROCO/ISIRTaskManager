@@ -126,7 +126,8 @@ bool TaskXMLParser::parseParam(TiXmlElement const& param_node, task_t& taskdesc)
     return true;
 }
 
-void TaskXMLParser::parseLocalOffset(TiXmlElement const& local_offset_node, frame_task_t& taskdesc){
+template<class T>
+void TaskXMLParser::parseLocalOffset(TiXmlElement const& local_offset_node, T& taskdesc){
     if( &local_offset_node == NULL ){
         taskdesc.offset.x() = 0;
         taskdesc.offset.y() = 0;
@@ -738,6 +739,50 @@ bool TaskXMLParser::parseFeatureCom(TiXmlElement const& feature_node, com_task_t
     return true;
 }
 
+bool TaskXMLParser::parseFeatureContact(TiXmlElement const& feature_node, contact_task_t& taskdesc){
+    TiXmlElement const* segment_node = feature_node.FirstChildElement("segment");
+    if(segment_node == NULL){
+        std::cout << taskdesc.id << " : No segment node in feature node" << std::endl;
+        return false;
+    }
+    if (segment_node->Attribute("name") != NULL){
+        taskdesc.segment_name = segment_node->Attribute("name"); 
+    }
+    else{
+        std::cout << taskdesc.id << " : No segment name" << std::endl;
+        return false;
+    }
+    //Parse local offset
+    TiXmlElement const* local_offset_node = feature_node.FirstChildElement("local_offset");
+    parseLocalOffset(*local_offset_node, taskdesc);
+    //Parse Mu and margin
+    TiXmlElement const* mu_node = feature_node.FirstChildElement("mu");
+    if(mu_node != NULL && mu_node->Attribute("value") != NULL){
+        std::istringstream mu_ss(mu_node->Attribute("value"));
+        mu_ss >> taskdesc.mu;
+    }
+    else { 
+        std::cout << taskdesc.id << " : Incorrect mu node, using default value" << "\n";
+        taskdesc.mu = 0.7;
+    }
+
+    TiXmlElement const* margin_node = feature_node.FirstChildElement("margin");
+    if(margin_node != NULL && margin_node->Attribute("value") != NULL){
+        std::istringstream margin_ss(margin_node->Attribute("value"));
+        margin_ss >> taskdesc.margin;
+    }
+    else { 
+        std::cout << taskdesc.id << " : Incorrect margin node, using default value" << "\n";
+        taskdesc.mu = 0.;
+    }
+
+    //Creation of features
+    taskdesc.SF = new orc::SegmentFrame(taskdesc.id+".SFrame", ctrl->getModel(), taskdesc.segment_name, taskdesc.offset);
+    taskdesc.feat = new orc::PointContactFeature(taskdesc.id+".ContactFeature", *(taskdesc.SF));
+
+    return true;
+}
+
 bool TaskXMLParser::addTask(TiXmlElement const& task_node){
     TiXmlElement const* param_node = task_node.FirstChildElement("param");
     TiXmlElement const* feature_node = task_node.FirstChildElement("feature");
@@ -875,11 +920,33 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
 
             taskdesc_map.insert(taskdesc->id, taskdesc);
             task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
-            initTask(*task, *taskdesc);
+            if (taskdesc->type == "ACCELERATION"){
+                initTask(*task, *taskdesc);
+            }
         }
         else{
             std::cout << taskdesc->id << " : Invalid dof" << std::endl;
         }
+
+    }
+    else if( featType == "contact" ){
+        contact_task_t* taskdesc = new contact_task_t;
+        taskdesc->feature_type = "contact";
+        parseTaskInfo(task_node, *taskdesc);
+        parseParam(*param_node, *taskdesc);
+        parseFeatureContact(*feature_node, *taskdesc);
+
+        taskdesc_map.insert(taskdesc->id, taskdesc);
+
+        orcisir::ISIRTask* task;
+        task = &(ctrl->createISIRContactTask(taskdesc->id, *taskdesc->feat, taskdesc->mu, taskdesc->margin));
+
+        task->initAsAccelerationTask();
+        ctrl->addTask(*task);
+        task->activateAsObjective();
+        task->setStiffness(taskdesc->kp);
+        task->setDamping(taskdesc->kd);
+        task->setWeight(taskdesc->w);
 
     }
     else{
@@ -939,7 +1006,10 @@ bool TaskXMLParser::updateTask(TiXmlElement const& task_node, task_t& taskdesc){
         com_task_t* com_task_desc = dynamic_cast<com_task_t*>(&taskdesc);
         parseParam(*param_node, *com_task_desc);
         parseObjectiveCoM(*feature_node, *com_task_desc);
-
+    }
+    else if( featType == "contact" ){
+        contact_task_t* contact_task_desc = dynamic_cast<contact_task_t*>(&taskdesc);
+        parseParam(*param_node, *contact_task_desc);
     }
 
     return true;
