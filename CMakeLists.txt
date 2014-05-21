@@ -2,7 +2,7 @@
 # Authors: Sovannara HAK
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
-PROJECT(ISIRTaskManager)
+PROJECT(isirtaskmanager)
 
 IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release)
