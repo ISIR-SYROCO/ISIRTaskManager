@@ -59,7 +59,7 @@ feature:
     The feature of the task.
 2. Attributes 
  * type (required) :
-     The type of the feature, can be fullstate, partialstate, frame, com, contact
+     The type of the feature, can be fullstate, partialstate, position, orientation, displacement, com, contact
 3. Elements
  * `<part>` (required for fullstate, partialstate, frame):
      This elements specifies if the free flyer is considered.

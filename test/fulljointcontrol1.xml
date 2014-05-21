@@ -1,63 +1,30 @@
 <tasks>
     <task id="full" type="ACCELERATION" active="1">
-        <param w="0.001" kp="4" kd="4"/>
+        <param w="0.0001" kp="10" kd="4"/>
         <feature type="fullstate">
             <part value="INTERNAL"/>
             <objective>
-                <q_des value="0.0 0.1 0.2 0.3 0.4 0.5 0.6"/>
-            </objective>
-        </feature>
-    </task>
-
-    <task id="full" type="ACCELERATION" active="1">
-        <param w="0.001" kp="4" kd="5"/>
-        <feature type="fullstate">
-            <part value="INTERNAL"/>
-            <objective>
-                <q_des value="0.4 0.4 0. -2 0.3 0.4 0.5"/>
-            </objective>
-        </feature>
-    </task>
-
-    <task id="partial" type="ACCELERATION" active="1">
-        <param w="0.999" kp="3" kd="3"/>
-        <feature type="partialstate">
-            <part value="INTERNAL"/>
-            <dofs value="2 3 4"/>
-            <objective>
-                <q_des value="1.6 1.4 1.666"/>
-            </objective>
-        </feature>
-    </task>
-
-    <task id="partial" type="ACCELERATION" active="1">
-        <param w="0.999" kp="3" kd="3"/>
-        <feature type="partialstate">
-            <part value="INTERNAL"/>
-            <dofs value="2 3 4"/>
-            <objective>
-                <q_des value="1.2 1.4 1.666"/>
+                <q_des value="0.0 0.0 0.0 0.0 0.0 0.0 0.0"/>
+                <qd_des value="0.0 0.0 0.0 0.0 0.0 0.0 0.0"/>
             </objective>
         </feature>
     </task>
 
     <task id="frame" type="ACCELERATION" active="1">
-        <param w="1" kp="1" kd="1"/>
-        <feature type="frame">
-            <dofs value="RXYZ"/>
-            <segment name="robot.07"/>
-            <local_offset xyz="0 0 0" rpy="0 0 0"/>
+        <param w="1" kp="7" kd="4"/>
+        <feature type="position">
+            <dofs value="XYZ"/>
+            <segment name="kuka.07"/>
+            <local_offset xyz="0 0 0.05" rpy="0 0 0"/>
             <objective>
-                <pos_des xyz="0.0 0.1 0.2" rpy="0 0 0"/>
-                <vel_des xyz="0.0 0.1 0.2" rpy="0 0 0"/>
-                <acc_des xyz="0.0 0.1 0.2" rpy="0 0 0"/>
-                <wrench_des force="0.0 0.1 0.2" torque="0 0 0"/>
+                <pos_des xyz="0.1 -0.1 0.5" rpy="0 0 0"/>
+                <vel_des xyz="0 0 0" rxyz="0 0 0"/>
             </objective>
         </feature>
     </task>
-
+    <!--
     <task id="com" active="1">
-        <param w="1" kp="1" kd="1"/>
+        <param w="0.0001" kp="1" kd="1"/>
         <feature type="com">
             <dofs value="XYZ"/>
             <objective>
@@ -77,4 +44,5 @@
             <margin value="0"/>
         </feature>
     </task>
+    -->
 </tasks>
