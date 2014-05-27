@@ -102,12 +102,16 @@ class TaskXMLParser{
     public:
         TaskXMLParser();
         ~TaskXMLParser();
+        TaskXMLParser(orcisir::ISIRController& controller);
         TaskXMLParser(std::string filepath, orcisir::ISIRController& controller);
 
         bool loadFile(std::string filepath);
+        orcisir::ISIRTask& getTask(std::string task_name);
+        //task_t& getTaskdesc(std::string task_name);
 
     private:
-        bool parse();
+        bool parseTask(TiXmlElement const* task);
+        bool parseTasks(TiXmlDocument& xmldoc);
         bool addTask(TiXmlElement const& tasknode);
         bool updateTask(TiXmlElement const& tasknode, task_t& taskdesc);
 
@@ -145,6 +149,7 @@ class TaskXMLParser{
         void initTask(orcisir::ISIRTask& task, task_t& taskdesc);
 
         boost::ptr_map< std::string, task_t > taskdesc_map;
+        std::map< std::string, orcisir::ISIRTask* > task_map;
 
         std::map<std::string, orc::ECartesianDof> str_frame_dof_map;
 

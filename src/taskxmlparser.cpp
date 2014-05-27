@@ -38,7 +38,20 @@ TaskXMLParser::TaskXMLParser(std::string filepath, orcisir::ISIRController &cont
     ("XYZ", orc::XYZ);
 
     loadFile(filepath);
+    parseTasks(taskfile);
     std::cout << ctrl->getName() << std::endl;
+}
+
+TaskXMLParser::TaskXMLParser(orcisir::ISIRController &controller)
+    : ctrl(&controller){
+    str_frame_dof_map = map_list_of
+    ("X", orc::X)
+    ("Y", orc::Y)
+    ("XY", orc::XY)
+    ("Z", orc::Z)
+    ("XZ", orc::XZ)
+    ("YZ", orc::YZ)
+    ("XYZ", orc::XYZ);
 }
 
 bool TaskXMLParser::loadFile(std::string filepath){
@@ -50,7 +63,6 @@ bool TaskXMLParser::loadFile(std::string filepath){
                 std::cout << "Cannot load xml file\n";
                 return false;
             }
-            parse();
             return true;
         }
         else{
@@ -64,12 +76,18 @@ bool TaskXMLParser::loadFile(std::string filepath){
     }
 }
 
-bool TaskXMLParser::parse(){
-    TiXmlHandle docHandle(&taskfile);
+bool TaskXMLParser::parseTasks(TiXmlDocument& xmldoc){
+    TiXmlHandle docHandle(&xmldoc);
     TiXmlElement* task = docHandle.FirstChild("tasks").FirstChild("task").ToElement();
     
     for(task; task; task = task->NextSiblingElement()){
         //Check if the task already exists
+        parseTask(task);
+    }
+    return true;
+}
+
+bool TaskXMLParser::parseTask(TiXmlElement const* task){
         boost::ptr_map< std::string, task_t >::iterator taskdesc_map_iter = taskdesc_map.find(task->Attribute("id"));
         if(taskdesc_map_iter == boost::end(taskdesc_map)){
             addTask(*task);
@@ -77,9 +95,7 @@ bool TaskXMLParser::parse(){
         else{
             updateTask(*task, *taskdesc_map_iter->second);
         }
-    }
-
-    return true;
+        return true;
 }
 
 bool TaskXMLParser::parseTaskInfo(TiXmlElement const& task_node, task_t& taskdesc){
@@ -805,6 +821,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         orcisir::ISIRTask* task;
         task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
         initTask(*task, *taskdesc);
+        task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
 
     }
     else if( featType == "partialstate" ){
@@ -819,6 +836,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         orcisir::ISIRTask* task;
         task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
         initTask(*task, *taskdesc);
+        task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
 
     }
     else if( featType == "displacement"){
@@ -841,6 +859,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
                 taskdesc_map.insert(taskdesc->id, taskdesc);
                 task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
                 initTask(*task, *taskdesc);
+                task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
                 ////
             }
             else{
@@ -870,6 +889,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
                 taskdesc_map.insert(taskdesc->id, taskdesc);
                 task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
                 initTask(*task, *taskdesc);
+                task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
                 ////
         }
         else{
@@ -896,6 +916,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
             taskdesc_map.insert(taskdesc->id, taskdesc);
             task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
             initTask(*task, *taskdesc);
+            task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
         }
         else{
             std::cout << taskdesc->id << " : Invalid dof" << std::endl;
@@ -922,6 +943,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
             task = &(ctrl->createISIRTask(taskdesc->id, *taskdesc->feat, *taskdesc->featdes));
             if (taskdesc->type == "ACCELERATION"){
                 initTask(*task, *taskdesc);
+                task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
             }
         }
         else{
@@ -947,6 +969,8 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         task->setStiffness(taskdesc->kp);
         task->setDamping(taskdesc->kd);
         task->setWeight(taskdesc->w);
+
+        task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
 
     }
     else{
@@ -1063,3 +1087,13 @@ void TaskXMLParser::printDisplacementDesc(displacement_task_t &task){
 
 
 }
+
+orcisir::ISIRTask& TaskXMLParser::getTask(std::string task_name){
+    return *task_map[task_name];
+}
+
+/* 
+task_t& TaskXMLParser::getTaskdesc(std::string task_name){
+    return &taskdesc_map[task_name];
+}    
+*/
