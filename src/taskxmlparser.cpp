@@ -14,7 +14,7 @@ using namespace boost::filesystem;
 #include <orc/control/FullState.h>
 #include <orc/control/ControlFrame.h>
 #include <orc/control/ControlEnum.h>
-
+#include <boost/foreach.hpp>
 #include <orcisir/Features/ISIRFeature.h>
 
 
@@ -1092,8 +1092,23 @@ orcisir::ISIRTask& TaskXMLParser::getTask(std::string task_name){
     return *task_map[task_name];
 }
 
-/* 
 task_t& TaskXMLParser::getTaskdesc(std::string task_name){
-    return &taskdesc_map[task_name];
+    return taskdesc_map[task_name];
 }    
-*/
+
+void TaskXMLParser::printTaskdescList(){
+    typedef boost::ptr_map< std::string, task_t > taskdesc_map_t;
+    BOOST_FOREACH(taskdesc_map_t::value_type it, taskdesc_map){
+        std::cout << it.first << std::endl;
+    }
+    return;
+}
+
+void TaskXMLParser::printTaskList(){
+    typedef std::map< std::string, orcisir::ISIRTask* > task_map_t;
+    BOOST_FOREACH(task_map_t::value_type it, task_map){
+        std::cout << it.first << std::endl;
+    }
+    return;
+
+}

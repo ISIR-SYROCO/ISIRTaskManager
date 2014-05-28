@@ -107,7 +107,10 @@ class TaskXMLParser{
 
         bool loadFile(std::string filepath);
         orcisir::ISIRTask& getTask(std::string task_name);
-        //task_t& getTaskdesc(std::string task_name);
+        task_t& getTaskdesc(std::string task_name);
+
+        void printTaskdescList();
+        void printTaskList();
 
     private:
         bool parseTask(TiXmlElement const* task);
