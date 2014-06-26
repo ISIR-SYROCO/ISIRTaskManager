@@ -17,7 +17,6 @@ using namespace boost::filesystem;
 #include <boost/foreach.hpp>
 #include <orcisir/Features/ISIRFeature.h>
 
-
 TaskXMLParser::TaskXMLParser(){
 
 }
@@ -112,6 +111,22 @@ bool TaskXMLParser::parseTaskInfo(TiXmlElement const& task_node, task_t& taskdes
     }
     else{
         taskdesc.type = task_node.Attribute("type");
+    }
+
+    if(task_node.Attribute("active") == NULL){
+        std::istringstream active_ss(task_node.Attribute("active"));
+        active_ss >> taskdesc.active;
+    }
+    else{
+        taskdesc.active = 0;
+    }
+
+    if(task_node.Attribute("mode") == "objective" || task_node.Attribute("mode") == "constraint"){
+        taskdesc.type = task_node.Attribute("mode");
+    }
+    else{
+        std::cout << "Unknown mode, objective will be used for " << task_node.Attribute("id") << std::endl;
+        taskdesc.type = "objective";
     }
     return true;
 }
@@ -278,7 +293,14 @@ void TaskXMLParser::initTask(orcisir::ISIRTask& task, task_t& taskdesc){
     if (taskdesc.type == "ACCELERATION"){
         task.initAsAccelerationTask();
         ctrl->addTask(task);
-        task.activateAsObjective();
+        if(taskdesc.active == 1){
+            if(taskdesc.mode == "constraint"){
+                task.activateAsConstraint();
+            }
+            else{
+                task.activateAsObjective();
+            }
+        }
         task.setStiffness(taskdesc.kp);
         task.setDamping(taskdesc.kd);
         task.setWeight(taskdesc.w);
@@ -286,7 +308,14 @@ void TaskXMLParser::initTask(orcisir::ISIRTask& task, task_t& taskdesc){
     else if (taskdesc.type == "TORQUE"){
         task.initAsTorqueTask();
         ctrl->addTask(task);
-        task.activateAsObjective();
+        if(taskdesc.active == 1){
+            if(taskdesc.mode == "constraint"){
+                task.activateAsConstraint();
+            }
+            else{
+                task.activateAsObjective();
+            }
+        }
         task.setStiffness(taskdesc.kp);
         task.setDamping(taskdesc.kd);
         task.setWeight(taskdesc.w);
@@ -963,14 +992,10 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         orcisir::ISIRTask* task;
         task = &(ctrl->createISIRContactTask(taskdesc->id, *taskdesc->feat, taskdesc->mu, taskdesc->margin));
 
-        task->initAsAccelerationTask();
-        ctrl->addTask(*task);
-        task->activateAsObjective();
-        task->setStiffness(taskdesc->kp);
-        task->setDamping(taskdesc->kd);
-        task->setWeight(taskdesc->w);
-
-        task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
+        if (taskdesc->type == "ACCELERATION"){
+            initTask(*task, *taskdesc);
+            task_map.insert(std::pair<std::string, orcisir::ISIRTask*>(taskdesc->id, task));
+        }
 
     }
     else{
@@ -985,6 +1010,15 @@ bool TaskXMLParser::updateTask(TiXmlElement const& task_node, task_t& taskdesc){
     //std::cout << "task id " << t->q_des[1] << std::endl;
 
     //task = dynamic_cast<orcisir::ISIRTask*>(&(ctrl->getTask(taskdesc.id)));
+    
+    if(task_node.Attribute("active") == NULL){
+        std::istringstream active_ss(task_node.Attribute("active"));
+        active_ss >> taskdesc.active;
+    }
+    else{
+        taskdesc.active = 0;
+    }
+
     TiXmlElement const* param_node = task_node.FirstChildElement("param");
     TiXmlElement const* feature_node = task_node.FirstChildElement("feature");
     if (feature_node == NULL){
@@ -1035,6 +1069,22 @@ bool TaskXMLParser::updateTask(TiXmlElement const& task_node, task_t& taskdesc){
         contact_task_t* contact_task_desc = dynamic_cast<contact_task_t*>(&taskdesc);
         parseParam(*param_node, *contact_task_desc);
     }
+
+
+    //Activate deactivate tasks
+    orcisir::ISIRTask* current_task = task_map[taskdesc.id];
+    if(taskdesc.active == 0){
+        current_task->deactivate();
+    }
+    else if(taskdesc.active == 1){
+        if(taskdesc.mode == "constraint"){
+            current_task->activateAsConstraint();
+        }
+        else{
+            current_task->activateAsObjective();
+        }
+    }
+
 
     return true;
 }

@@ -22,6 +22,7 @@ struct task_t{
     std::string type;
     std::string feature_type;
     std::string id;
+    std::string mode;
 };
 
 struct fullstate_task_t : task_t{
