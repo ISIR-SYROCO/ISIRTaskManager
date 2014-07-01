@@ -18,6 +18,7 @@ class TrajectoryReaderJointAbstract{
         std::vector<Eigen::VectorXd>::iterator current_data;
 
         void dumpFile(std::string filepath);
+        void resetIterator();
 };
 
 class TrajectoryReaderFullJoint : TrajectoryReaderJointAbstract{

@@ -11,12 +11,7 @@
 #include <boost/filesystem.hpp>
 using namespace boost::filesystem;
 
-TrajectoryReaderFullJoint::TrajectoryReaderFullJoint(fullstate_task_t* taskdescription, unsigned int internaldof, std::string filepath){
-    taskdesc = taskdescription;
-    size_q = internaldof;
-    dumpFile(filepath);
-}
-
+//Abstract
 void TrajectoryReaderJointAbstract::dumpFile(std::string filepath){
     path p(filepath);
     if (exists(p)){
@@ -42,6 +37,20 @@ void TrajectoryReaderJointAbstract::dumpFile(std::string filepath){
         std::cout << p << " does not exist\n";
         return;
     }
+}
+
+TrajectoryReaderJointAbstract::resetIterator(){
+    if(!data.empty()){
+        current_data = data.begin();
+    }
+
+}
+
+//Fulljoint
+TrajectoryReaderFullJoint::TrajectoryReaderFullJoint(fullstate_task_t* taskdescription, unsigned int internaldof, std::string filepath){
+    taskdesc = taskdescription;
+    size_q = internaldof;
+    dumpFile(filepath);
 }
 
 void TrajectoryReaderFullJoint::update(){
