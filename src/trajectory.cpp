@@ -39,7 +39,7 @@ void TrajectoryReaderJointAbstract::dumpFile(std::string filepath){
     }
 }
 
-TrajectoryReaderJointAbstract::resetIterator(){
+void TrajectoryReaderJointAbstract::resetIterator(){
     if(!data.empty()){
         current_data = data.begin();
     }
@@ -47,12 +47,42 @@ TrajectoryReaderJointAbstract::resetIterator(){
 }
 
 //Fulljoint
-TrajectoryReaderFullJoint::TrajectoryReaderFullJoint(fullstate_task_t* taskdescription, unsigned int internaldof, std::string filepath){
-    taskdesc = taskdescription;
+TrajectoryReaderFullJoint::TrajectoryReaderFullJoint(orc::FullTargetState* targetstate, desired_objective_t obj, unsigned int internaldof, std::string filepath){
+    FTS = targetstate;
+    objective = obj;
     size_q = internaldof;
     dumpFile(filepath);
+    resetIterator();
+}
+
+TrajectoryReaderFullJoint::~TrajectoryReaderFullJoint(){
+
 }
 
 void TrajectoryReaderFullJoint::update(){
+    if (objective == position){
+        if (current_data != data.end()){
+            FTS->set_q(*current_data);
+            current_data++;
+        }
+    }
+    else if (objective == velocity){
+        if (current_data != data.end()){
+            FTS->set_qdot(*current_data);
+            current_data++;
+        }
+    }
+    else if (objective == acceleration){
+        if (current_data != data.end()){
+            FTS->set_qddot(*current_data);
+            current_data++;
+        }
+    }
+    else if (objective == torque){
+        if (current_data != data.end()){
+            FTS->set_tau(*current_data);
+            current_data++;
+        }
+    }
     return;
 }

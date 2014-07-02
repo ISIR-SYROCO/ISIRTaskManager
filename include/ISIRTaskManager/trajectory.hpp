@@ -3,17 +3,31 @@
 // Author:  Sovan Hak (hak@isir.upmc.fr) 
 // Description:  Trajectory handler for ISIRTask
 
-#include "taskxmlparser.hpp"
+#ifndef TRAJECTORY_H
+#define TRAJECTORY_H
 
-class TrajectoryReaderAbstract{
-    public:
-        virtual void update() = 0;
-        virtual void dumpFile(std::string filepath) = 0;
+#include <orc/control/FullState.h>
+#include <vector>
+#include <iostream>
+
+enum desired_objective_t {
+    position,
+    velocity,
+    acceleration,
+    torque
 };
 
-class TrajectoryReaderJointAbstract{
+class Trajectory{
+    public:
+        //Trajectory(){};
+        //~Trajectory(){};
+        virtual void update() = 0;
+};
+
+class TrajectoryReaderJointAbstract : public Trajectory{
     public:
         unsigned int size_q;
+        desired_objective_t objective;
         std::vector<Eigen::VectorXd> data;
         std::vector<Eigen::VectorXd>::iterator current_data;
 
@@ -21,12 +35,14 @@ class TrajectoryReaderJointAbstract{
         void resetIterator();
 };
 
-class TrajectoryReaderFullJoint : TrajectoryReaderJointAbstract{
+class TrajectoryReaderFullJoint : public TrajectoryReaderJointAbstract{
     public:
-        TrajectoryReaderFullJoint(fullstate_task_t* taskdescription, unsigned int internaldof, std::string filepath);
+        TrajectoryReaderFullJoint(orc::FullTargetState* targetstate, desired_objective_t obj, unsigned int internaldof, std::string filepath);
         ~TrajectoryReaderFullJoint();
 
-        fullstate_task_t* taskdesc;
+        orc::FullTargetState* FTS;
 
         void update();
 };
+
+#endif

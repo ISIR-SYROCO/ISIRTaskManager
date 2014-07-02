@@ -3,6 +3,9 @@
 // Author:  Sovan Hak (hak@isir.upmc.fr) 
 // Description:  Parse XML file and create ISIRTask objects
 
+#ifndef TASK_XML_PARSER_H
+#define TASK_XML_PARSER_H
+
 #include <tinyxml.h>
 #include <string>
 #include <map>
@@ -12,6 +15,7 @@
 #include <orc/control/Feature.h>
 #include <orc/control/FullState.h>
 #include <boost/ptr_container/ptr_map.hpp>
+#include "ISIRTaskManager/trajectory.hpp"
 
 struct task_t{
     virtual ~task_t() {}
@@ -110,6 +114,8 @@ class TaskXMLParser{
         orcisir::ISIRTask& getTask(std::string task_name);
         task_t& getTaskdesc(std::string task_name);
 
+        Trajectory* getTrajectoryReader(std::string traj_id);
+
         void printTaskdescList();
         void printTaskList();
 
@@ -153,6 +159,7 @@ class TaskXMLParser{
         void initTask(orcisir::ISIRTask& task, task_t& taskdesc);
 
         boost::ptr_map< std::string, task_t > taskdesc_map;
+        boost::ptr_map< std::string, Trajectory > trajectory_map;
         std::map< std::string, orcisir::ISIRTask* > task_map;
 
         std::map<std::string, orc::ECartesianDof> str_frame_dof_map;
@@ -167,4 +174,4 @@ class TaskXMLParser{
 
 };
 
-
+#endif

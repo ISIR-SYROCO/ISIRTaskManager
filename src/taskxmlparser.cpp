@@ -5,6 +5,7 @@
 
 #include "ISIRTaskManager/taskxmlparser.hpp"
 #include "ISIRTaskManager/mathutils.hpp"
+#include "ISIRTaskManager/trajectory.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/assign/list_of.hpp>
 using namespace boost::assign;
@@ -113,7 +114,7 @@ bool TaskXMLParser::parseTaskInfo(TiXmlElement const& task_node, task_t& taskdes
         taskdesc.type = task_node.Attribute("type");
     }
 
-    if(task_node.Attribute("active") == NULL){
+    if(task_node.Attribute("active") != NULL){
         std::istringstream active_ss(task_node.Attribute("active"));
         active_ss >> taskdesc.active;
     }
@@ -121,12 +122,12 @@ bool TaskXMLParser::parseTaskInfo(TiXmlElement const& task_node, task_t& taskdes
         taskdesc.active = 0;
     }
 
-    if(task_node.Attribute("mode") == "objective" || task_node.Attribute("mode") == "constraint"){
-        taskdesc.type = task_node.Attribute("mode");
+    if(strcmp(task_node.Attribute("mode"), "objective") == 0 || strcmp(task_node.Attribute("mode"), "constraint") == 0){
+        taskdesc.mode = task_node.Attribute("mode");
     }
     else{
         std::cout << "Unknown mode, objective will be used for " << task_node.Attribute("id") << std::endl;
-        taskdesc.type = "objective";
+        taskdesc.mode = "objective";
     }
     return true;
 }
@@ -219,6 +220,12 @@ bool TaskXMLParser::parseObjectiveFullState(TiXmlElement const& feature_node, fu
     TiXmlElement const* qdes_node = feature_node.FirstChildElement("objective")->FirstChildElement("q_des");
     if (fillVector(qdes_node, ctrl->getModel().nbInternalDofs(), taskdesc.q_des)){
         taskdesc.FTS->set_q(taskdesc.q_des);
+    }
+    else if (qdes_node->Attribute("trajectory") != NULL){
+        desired_objective_t obj = position;
+        TrajectoryReaderFullJoint* traj_reader = new TrajectoryReaderFullJoint(taskdesc.FTS, obj, ctrl->getModel().nbInternalDofs(), qdes_node->Attribute("trajectory"));
+        std::string traj_id(taskdesc.id+"_pos");
+        trajectory_map.insert(traj_id, traj_reader);
     }
 
     //qd_des
@@ -836,9 +843,16 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         return false;
     }
 
+    int task_active = 0;
+    if(task_node.Attribute("active") != NULL){
+        std::istringstream active_ss(task_node.Attribute("active"));
+        active_ss >> task_active;
+    }
+
     std::string featType(feature_node->Attribute("type"));
     if ( featType == "fullstate" ){
         fullstate_task_t* taskdesc = new fullstate_task_t;
+        taskdesc->active = task_active;
         taskdesc->feature_type = "fullstate";
         parseTaskInfo(task_node, *taskdesc);
         parseParam(*param_node, *taskdesc);
@@ -855,6 +869,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
     }
     else if( featType == "partialstate" ){
         partialstate_task_t* taskdesc = new partialstate_task_t;
+        taskdesc->active = task_active;
         taskdesc->feature_type = "partialstate";
         parseTaskInfo(task_node, *taskdesc);
         parseParam(*param_node, *taskdesc);
@@ -875,6 +890,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         orc::ECartesianDof cartesian_dofs;
         parseFrameTaskDofs(*dofs_node, rotation_enabled, cartesian_dofs);
         displacement_task_t* taskdesc = new displacement_task_t;
+        taskdesc->active = task_active;
         taskdesc->feature_type = "displacement";
         taskdesc->dofs = cartesian_dofs;
         parseTaskInfo(task_node, *taskdesc);
@@ -906,6 +922,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         orc::ECartesianDof cartesian_dofs;
         parseFrameTaskDofs(*dofs_node, rotation_enabled, cartesian_dofs);
         orientation_task_t* taskdesc = new orientation_task_t;
+        taskdesc->active = task_active;
         taskdesc->feature_type = "orientation";
         parseTaskInfo(task_node, *taskdesc);
         parseParam(*param_node, *taskdesc);
@@ -932,6 +949,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         orc::ECartesianDof cartesian_dofs;
         parseFrameTaskDofs(*dofs_node, rotation_enabled, cartesian_dofs);
         position_task_t* taskdesc = new position_task_t;
+        taskdesc->active = task_active;
         taskdesc->feature_type = "position";
         taskdesc->dofs = cartesian_dofs;
         parseTaskInfo(task_node, *taskdesc);
@@ -957,6 +975,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
         orc::ECartesianDof cartesian_dofs;
         parseFrameTaskDofs(*dofs_node, rotation_enabled, cartesian_dofs);
         com_task_t* taskdesc = new com_task_t;
+        taskdesc->active = task_active;
 //
         taskdesc->feature_type = "com";
         taskdesc->dofs = cartesian_dofs;
@@ -982,6 +1001,7 @@ bool TaskXMLParser::addTask(TiXmlElement const& task_node){
     }
     else if( featType == "contact" ){
         contact_task_t* taskdesc = new contact_task_t;
+        taskdesc->active = task_active;
         taskdesc->feature_type = "contact";
         parseTaskInfo(task_node, *taskdesc);
         parseParam(*param_node, *taskdesc);
@@ -1011,7 +1031,7 @@ bool TaskXMLParser::updateTask(TiXmlElement const& task_node, task_t& taskdesc){
 
     //task = dynamic_cast<orcisir::ISIRTask*>(&(ctrl->getTask(taskdesc.id)));
     
-    if(task_node.Attribute("active") == NULL){
+    if(task_node.Attribute("active") != NULL){
         std::istringstream active_ss(task_node.Attribute("active"));
         active_ss >> taskdesc.active;
     }
@@ -1135,7 +1155,6 @@ void TaskXMLParser::printDisplacementDesc(displacement_task_t &task){
         << "kp = : " << task.kp << "\n"
         << "kd = : " << task.kd << "\n";
 
-
 }
 
 orcisir::ISIRTask& TaskXMLParser::getTask(std::string task_name){
@@ -1145,6 +1164,17 @@ orcisir::ISIRTask& TaskXMLParser::getTask(std::string task_name){
 task_t& TaskXMLParser::getTaskdesc(std::string task_name){
     return taskdesc_map[task_name];
 }    
+
+Trajectory* TaskXMLParser::getTrajectoryReader(std::string traj_id){
+    boost::ptr_map<std::string, Trajectory>::iterator it = trajectory_map.find(traj_id);
+    if (it != trajectory_map.end()){
+        return it->second;
+    }
+    else{
+        return NULL;
+    }
+    //return trajectory_map[traj_id];
+}
 
 void TaskXMLParser::printTaskdescList(){
     typedef boost::ptr_map< std::string, task_t > taskdesc_map_t;

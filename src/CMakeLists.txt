@@ -4,9 +4,9 @@
 ADD_LIBRARY(
     ${PROJECT_NAME}
     ${LIB_TYPE}
+    trajectory.cpp
     taskxmlparser.cpp
     mathutils.cpp
-    trajectory.cpp
 )
 
 TARGET_LINK_LIBRARIES(
